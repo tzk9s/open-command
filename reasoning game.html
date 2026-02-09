@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>推理ゲーム</title>
+    <style>
+        body { margin: 0; background-color: #000; color: white; font-family: "serif"; overflow: hidden; user-select: none; }
+        .screen { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
+
+        /* タイトル画面 */
+        #title-screen { background: linear-gradient(to bottom, #400, #000); z-index: 1; }
+        h1 { font-size: 60px; color: #d00; text-shadow: 2px 2px 10px #000; margin-bottom: 30px; }
+
+        /* 共通ボタンデザイン */
+        .menu-container { display: flex; flex-direction: column; align-items: center; z-index: 5; }
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.1); color: white; border: 2px solid white;
+            width: 320px; padding: 15px 0; margin: 10px; cursor: pointer; font-size: 20px; transition: 0.3s;
+        }
+        .menu-btn:hover { background: rgba(255, 255, 255, 0.4); border-color: #d00; transform: scale(1.05); }
+
+        /* ゲーム画面 */
+        #game-screen {
+            background: linear-gradient(135deg, #001a33 0%, #000000 100%);
+            position: relative;
+        }
+        #game-screen::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.5) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* メッセージウィンドウ */
+        #msg-window {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 140px;
+            background: rgba(15, 15, 25, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 25px;
+            font-size: 22px;
+            line-height: 1.6;
+            z-index: 10;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        #speaker-name { 
+            position: absolute;
+            top: -30px;
+            left: 20px;
+            background: #800;
+            color: #fff;
+            padding: 3px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            letter-spacing: 2px;
+        }
+
+        
+        #choice-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0); /* 透明に変更 */
+            display: none; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; /* 上寄せに変更 */
+            padding-top: 20vh; /* 画面の上から15%くらいの位置に表示 */
+            z-index: 20;
+        }
+
+        /* ルール・設定画面 */
+        #rule-screen, #config-screen { background: rgba(0, 0, 0, 0.95); z-index: 50; }
+        .rule-content { width: 70%; font-size: 20px; line-height: 2.0; text-align: left; border: 1px solid #777; padding: 40px; }
+
+        #config-content {
+            position: absolute; bottom: 50px; width: 80%; text-align: center;
+            border-top: 1px solid #555; padding-top: 20px;
+        }
+
+        /* 自動メモ帳 */
+        #memo-pad {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 500px; height: 400px;
+            background: #fffbe6; color: #333;
+            display: none; flex-direction: column;
+            border: 8px solid #533; border-radius: 5px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            z-index: 1000; font-family: "serif";
+        }
+        #memo-header { background: #533; color: white; padding: 10px; font-weight: bold; text-align: center; }
+        #memo-list { padding: 20px; overflow-y: auto; list-style-type: none; margin: 0; }
+        #memo-list li { border-bottom: 1px dashed #999; padding: 10px 0; font-size: 18px; }
+        .empty-memo { color: #999; text-align: center; margin-top: 50px; }
+
+        /* 金庫パネル */
+        #safe-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+        }
+        #safe-box {
+            background: #333; border: 10px solid #666; padding: 20px; border-radius: 10px;
+            box-shadow: 0 0 20px #000; display: flex; flex-direction: column; align-items: center;
+        }
+        #safe-display {
+            background: #000; color: #0f0; font-family: monospace; font-size: 40px;
+            width: 200px; height: 50px; text-align: center; line-height: 50px;
+            margin-bottom: 20px; border: 2px solid #555; letter-spacing: 5px;
+        }
+        .safe-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .safe-btn {
+            width: 60px; height: 60px; background: #222; color: white; border: 2px solid #555;
+            font-size: 24px; cursor: pointer; border-radius: 50%;
+            box-shadow: 0 4px 0 #000;
+        }
+        .safe-btn:active { transform: translateY(4px); box-shadow: none; }
+        .safe-action-btn { width: 100%; margin-top: 15px; padding: 10px; background: #d00; color: white; border: none; font-size: 18px; cursor: pointer; }
+
+        /* 演出系 */
+        .red { color: red; font-weight: bold; text-shadow: 0 0 5px #f00; }
+        .gold { color: gold; font-weight: bold; }
+        @keyframes flash { 0% { background-color: red; } 100% { background-color: black; } }
+        .effect-flash { animation: flash 0.5s ease-out; }
+    </style>
+</head>
+<body>
+
+    <div id="data-store" style="display:none;">
+        <div id="txt-rule-desc">
+            【ゲームのルール】<br>
+            1. 画面を左クリックして会話を進めます。<br>
+            2. 気になる場所や人を調べて証拠を集めましょう。<br>
+            3. 証拠は「m」キーを押すと「手帳」で確認できます。<br>
+            4. 最後に犯人を指名し、事件を解決してください。<br>
+            <span class="gold">Good Endを目指して頑張ってください！</span>
+        </div>
+
+        <div id="txt-intro-1" data-name="システム">貴方は探偵です。矛盾を見つけて犯人を見つけ出してください。</div>
+        <div id="txt-intro-2" data-name="システム">森の中にあるホテルで遺体が発見された...</div>
+        <div id="txt-intro-3" data-name="???">「うわああああ!!!」</div>
+        <div id="txt-intro-4" data-name="用務員">404号室に夜食を届けに行こうとしたら彼が死んでいたんです...</div>
+        <div id="txt-intro-5" data-name="あなた">殺されてから、1時間は経っているだろう。<br>私が解決してみましょう。</div>
+        <div id="txt-intro-6" data-name="館長">ほんとか！？</div>
+        <div id="txt-intro-7" data-name="あなた">ですが今日は時間が遅いので、明日調査しましょう。</div>
+        <div id="txt-intro-8" data-name="システム">翌朝、調査を開始した。</div>
+
+        <div id="txt-menu-default">次はどこを調べる？</div>
+        <div id="txt-owner-start">「何かお力になれる事はありますか？」</div>
+        <div id="txt-chef-info">「昨晩、厨房で掃除をしている時、ギラギラした刃物のような物を持った誰かを見ました。」</div>
+        <div id="txt-camera-info">「カメラは先日の落雷で壊れているんです。嵐が去ったら修理業者を呼ぶつもりです。」</div>
+        <div id="txt-key-get"><span class='gold'>404号室の鍵を手に入れた！</span></div>
+        
+        <div id="txt-event-scream"><span class='red'>！！ キャァァァァ ！！</span><br>405号室で新たな犠牲者が。<br>壁には血文字で<span class='red'>「2641」</span>と残されている...</div>
+        
+        <div id="txt-alibi-owner">「私は11時から15分頃まで事務室で帳簿をつけていましたよ。11時17分から用務員と私で待合室を掃除をしてたよ<br>待合室には用務員しかいませんでした」</div>
+        <div id="txt-alibi-chef">「11時から厨房の掃除をして、11時15分からは待合室のモップ掛けをしていました。<br>待合室には館長しか来てません。」</div>
+        <div id="txt-alibi-401">「俺は11時から待合室で30分間、新聞を読んでいた。<br>記事に夢中だったな。」</div>
+        <div id="txt-alibi-402">「11時から11時半まで食堂でテレビを見ながら朝食を食べていたよ。<br>よく覚えている。」</div>
+
+        <div id="txt-culprit-reveal">「クソっ、バレたか！<br>...そうだ、俺がやったんだよ！」</div>
+        <div id="txt-battle-choice">犯人が開き直ってナイフを取り出した！どうする！？</div>
+        <div id="txt-end-bad">【BAD END】<br>説得を試みたが、逆上した犯人に刺されて逃げられてしまった...<br>迷宮入りだ...</div>
+        <div id="txt-end-good">【GOOD END】<br>一瞬の隙を突いてタックル！<br>犯人を取り押さえ、事件は無事解決した！</div>
+
+        <div id="memo-clue-scream">血文字のダイイングメッセージ：2641</div>
+        <div id="memo-clue-chef">用務員の証言：昨晩、厨房で刃物を持った人物を目撃</div>
+        <div id="memo-clue-kitchen">厨房のメモ：『数字を3つ進める』</div>
+        <div id="memo-clue-safe">金庫の手紙：『犯人は男。大柄ではない』</div>
+        <div id="memo-info-owner">館長のアリバイ：11:15〜 事務室で帳簿/11:15～11:30待合室 （用務員と一緒に掃除）</div>
+        <div id="memo-info-chef">用務員のアリバイ：11:00 厨房 / 11:15〜11:30待合室 (館長と一緒に掃除)</div>
+        <div id="memo-info-401">中年男性のアリバイ：11:00〜11:30 待合室で新聞</div>
+        <div id="memo-info-402">大柄男性のアリバイ：〜11:30 食堂で食事</div>
+    </div>
+
+    <div id="title-screen" class="screen active">
+        <h1>推理ゲーム</h1>
+        <div class="menu-container">
+            <button class="menu-btn" onclick="startGame()">最初から</button>
+            <button class="menu-btn" onclick="loadGame()">つづきから</button>
+            <button class="menu-btn" onclick="showRules()">ルール説明</button>
+            <button class="menu-btn" onclick="showConfig()">設 定</button>
+        </div>
+    </div>
+
+    <div id="rule-screen" class="screen">
+        <h2>遊び方</h2>
+        <div class="rule-content" id="rule-text-area"></div>
+        <button class="menu-btn" onclick="hideRules()">戻る</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="msg-window" onclick="advanceText()">
+            <div id="speaker-name"></div>
+            <div id="text-content"></div>
+        </div>
+        <div id="choice-overlay"></div>
+        
+        <div id="safe-overlay">
+            <div id="safe-box">
+                <div style="color:white; margin-bottom:10px;">番号を入力してください</div>
+                <div id="safe-display"></div>
+                <div class="safe-keys">
+                    <button class="safe-btn" onclick="safeInput(1)">1</button>
+                    <button class="safe-btn" onclick="safeInput(2)">2</button>
+                    <button class="safe-btn" onclick="safeInput(3)">3</button>
+                    <button class="safe-btn" onclick="safeInput(4)">4</button>
+                    <button class="safe-btn" onclick="safeInput(5)">5</button>
+                    <button class="safe-btn" onclick="safeInput(6)">6</button>
+                    <button class="safe-btn" onclick="safeInput(7)">7</button>
+                    <button class="safe-btn" onclick="safeInput(8)">8</button>
+                    <button class="safe-btn" onclick="safeInput(9)">9</button>
+                    <button class="safe-btn" style="font-size:16px" onclick="safeClear()">C</button>
+                    <button class="safe-btn" onclick="safeInput(0)">0</button>
+                    <button class="safe-btn" style="color:#f55; font-size:16px" onclick="closeSafe()">×</button>
+                </div>
+                <button class="safe-action-btn" onclick="safeCheck()">OPEN</button>
+            </div>
+        </div>
+
+        <div id="memo-pad">
+            <div id="memo-header">推理手帳 (閉じる: m)</div>
+            <ul id="memo-list">
+                <li class="empty-memo">まだ手がかりはない...</li>
+            </ul>
+        </div>
+
+        <div style="position:absolute; top:10px; right:10px;">
+            <button onclick="saveGame()">セーブ</button>
+            <button onclick="location.reload()">タイトル</button>
+        </div>
+    </div>
+
+    <div id="config-screen" class="screen">
+        <div id="config-content">
+            <h2>設定</h2>  
+            <p>音量設定：<span style="color:gray;">(未実装)</span></p>
+            <button class="menu-btn" onclick="hideConfig()">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        // --- ゲームの状態 ---
+        let gameState = {
+            sceneIdx: 1, 
+            hasKey404: false,
+            checkedCamera: false,
+            event110Occurred: false,
+            checkedRoom404: false,
+            checkedKitchen: false,
+            openedSafe: false,
+            heardOwner: false, // 初期聞き込み用
+            heardChef: false,  // 初期聞き込み用
+            
+            heardAlibiOwner: false,
+            heardAlibiChef: false,
+            heardAlibi401: false,
+            heardAlibi402: false,
+
+            memoIds: [],
+            returnToOwnerMenu: false,
+            isBattleMode: false
+        };
+
+        const textEl = document.getElementById("text-content");
+        const nameEl = document.getElementById("speaker-name");
+        const overlay = document.getElementById("choice-overlay");
+        const memoPad = document.getElementById("memo-pad");
+        const memoList = document.getElementById("memo-list");
+
+        let safeCode = "";
+
+        // テキスト取得
+        function getHtmlText(id) {
+            const el = document.getElementById(id);
+            return el ? el.innerHTML : "";
+        }
+        function getHtmlName(id) {
+            const el = document.getElementById(id);
+            return el ? el.getAttribute("data-name") : "";
+        }
+
+        // メモ機能
+        function addToMemo(memoId) {
+            if (gameState.memoIds.includes(memoId)) return;
+            gameState.memoIds.push(memoId);
+            updateMemoDisplay();
+        }
+        function updateMemoDisplay() {
+            memoList.innerHTML = "";
+            if (gameState.memoIds.length === 0) {
+                memoList.innerHTML = '<li class="empty-memo">まだ手がかりはない...</li>';
+                return;
+            }
+            gameState.memoIds.forEach(id => {
+                const li = document.createElement("li");
+                li.innerHTML = "・" + getHtmlText(id);
+                memoList.appendChild(li);
+            });
+        }
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'm') {
+                if (document.getElementById('game-screen').classList.contains('active')) {
+                    memoPad.style.display = (memoPad.style.display === 'flex') ? 'none' : 'flex';
+                }
+            }
+        });
+
+        // 画面遷移
+        function changeScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+        function startGame() {
+            changeScreen('game-screen');
+            gameState.sceneIdx = 1;
+            updateDisplay();
+        }
+        function showRules() {
+            document.getElementById('rule-text-area').innerHTML = getHtmlText('txt-rule-desc');
+            changeScreen('rule-screen');
+        }
+        function hideRules() { changeScreen('title-screen'); }
+
+        // テキスト送り
+        function advanceText() {
+            if (overlay.style.display === "flex") return;
+            if (memoPad.style.display === "flex") return; 
+            if (document.getElementById("safe-overlay").style.display === "flex") return;
+
+            if (gameState.returnToOwnerMenu) {
+                gameState.returnToOwnerMenu = false; 
+                talkToOwner(); 
+                return;
+            }
+
+            if (gameState.isBattleMode) return;
+
+            if (gameState.sceneIdx < 8) {
+                gameState.sceneIdx++;
+                if (gameState.sceneIdx > 8) showMainMenu();
+                else updateDisplay();
+            } else {
+                showMainMenu();
+            }
+        }
+        function updateDisplay() {
+            const currentId = "txt-intro-" + gameState.sceneIdx;
+            const text = getHtmlText(currentId);
+            const name = getHtmlName(currentId);
+            if (text) {
+                nameEl.innerText = name;
+                textEl.innerHTML = text;
+            } else {
+                showMainMenu();
+            }
+        }
+
+        // メインメニュー
+        function showMainMenu() {
+            gameState.returnToOwnerMenu = false; 
+            overlay.innerHTML = "";
+            overlay.style.display = "flex";
+            nameEl.innerText = "探索";
+            textEl.innerHTML = getHtmlText("txt-menu-default");
+
+            // イベント発生条件
+            if (gameState.heardOwner && gameState.heardChef && !gameState.event110Occurred) {
+                triggerEvent405();
+                return;
+            }
+
+            if (!gameState.event110Occurred) {
+                if (!gameState.heardOwner) addChoice("館長に聞き込みをする", () => talkToOwner());
+                if (!gameState.heardChef) {
+                    addChoice("用務員に聞き込みをする", () => {
+                        addToMemo("memo-clue-chef"); 
+                        gameState.heardChef = true;
+                        talkUpdate("用務員", getHtmlText("txt-chef-info") + "<br><span class='gold'>（メモに記入した）</span>");
+                    });
+                }
+            } else {
+                if (!gameState.checkedRoom404) addChoice("404号室を調べる", () => checkRoom404());
+                if (!gameState.checkedKitchen) addChoice("厨房を調べる", () => checkKitchen());
+                if (gameState.checkedRoom404 && !gameState.openedSafe) addChoice("金庫を詳しく調べる", () => openSafeUI());
+                
+                if (gameState.checkedRoom404 && gameState.checkedKitchen && gameState.openedSafe) {
+                    // ★修正点4: フラグを「heardAlibi~」に変更して管理
+                    addChoice("館長に行動を聞く", () => { 
+                        addToMemo("memo-info-owner"); 
+                        talkUpdate("館長", getHtmlText("txt-alibi-owner") + "<br><span class='gold'>（メモに記入した）</span>", "heardAlibiOwner"); 
+                    });
+                    addChoice("用務員に行動を聞く", () => { 
+                        addToMemo("memo-info-chef"); 
+                        talkUpdate("用務員", getHtmlText("txt-alibi-chef") + "<br><span class='gold'>（メモに記入した）</span>", "heardAlibiChef"); 
+                    });
+                    addChoice("中年男性に行動を聞く", () => { 
+                        addToMemo("memo-info-401"); 
+                        talkUpdate("中年男性", getHtmlText("txt-alibi-401") + "<br><span class='gold'>（メモに記入した）</span>", "heardAlibi401"); 
+                    });
+                    addChoice("大柄男性に行動を聞く", () => { 
+                        addToMemo("memo-info-402"); 
+                        talkUpdate("大柄男性", getHtmlText("txt-alibi-402") + "<br><span class='gold'>（メモに記入した）</span>", "heardAlibi402"); 
+                    });
+                }
+
+                // ★修正点4: 4人全員のアリバイを聞かないと犯人指名が出ないように変更
+                if (gameState.openedSafe && 
+                    gameState.heardAlibiOwner && 
+                    gameState.heardAlibiChef && 
+                    gameState.heardAlibi401 && 
+                    gameState.heardAlibi402) {
+                    addChoice("<span class='gold'>【犯人を指名する】</span>", () => pointCulprit());
+                }
+            }
+            adjustChoiceHeight();
+        }
+
+        function talkUpdate(name, msg, flagName) {
+            nameEl.innerText = name;
+            textEl.innerHTML = msg + "<br><small>(画面クリックで進む)</small>";
+            if(flagName) gameState[flagName] = true;
+            overlay.style.display = "none"; 
+        }
+
+        function checkOwnerFinished() {
+            if (gameState.checkedCamera && gameState.hasKey404) gameState.heardOwner = true;
+
+            
+        }
+
+        function talkToOwner() {
+            overlay.innerHTML = "";
+            overlay.style.display = "flex";
+            nameEl.innerText = "館長";
+            textEl.innerHTML = getHtmlText("txt-owner-start");
+
+            if (!gameState.checkedCamera) {
+                addChoice("監視カメラを確認する", () => {
+                    gameState.checkedCamera = true;
+                    checkOwnerFinished();
+                    gameState.returnToOwnerMenu = true;
+                    talkUpdate("館長", getHtmlText("txt-camera-info"));
+                });
+            }
+            if (!gameState.hasKey404) {
+                addChoice("404号室の鍵を借りる", () => {
+                    gameState.hasKey404 = true;
+                    checkOwnerFinished();
+                    gameState.returnToOwnerMenu = true;
+                    talkUpdate("システム", getHtmlText("txt-key-get"));
+                });
+            }
+            addChoice("戻る", () => showMainMenu());
+        }
+
+        function triggerEvent405() {
+            gameState.event110Occurred = true;
+            overlay.style.display = "none";
+            document.body.classList.add('effect-flash');
+            
+            // フラッシュ演出後
+            setTimeout(() => document.body.classList.remove('effect-flash'), 500);
+
+            // ★修正点3: 「キャァァ」の文章表示を少し遅らせる (1.5秒待機)
+            nameEl.innerText = "イベント";
+            textEl.innerHTML = ""; // 一旦空にする
+
+            setTimeout(() => {
+                addToMemo("memo-clue-scream");
+                textEl.innerHTML = getHtmlText("txt-event-scream") + "<br><span class='gold'>（メモに記入した）</span><br><small>(画面クリックで調査再開)</small>";
+            }, 500);
+        }
+
+        function checkRoom404() {
+            if (gameState.hasKey404) {
+                talkUpdate("システム", "404号室に入った。奥に古い金庫があるのを見つけた。");
+                gameState.checkedRoom404 = true;
+            } else {
+                talkUpdate("システム", "鍵がかかっていて入れない。館長に相談してみよう。");
+            }
+        }
+        function checkKitchen() {
+            addToMemo("memo-clue-kitchen");
+            gameState.checkedKitchen = true;
+            talkUpdate("システム", "厨房を調べるとメモを発見した。『数字を3つ進める』...暗号か？<br><span class='gold'>（メモに記入した）</span>");
+        }
+
+        // --- 金庫UI関連 ---
+        function openSafeUI() {
+            overlay.style.display = "none";
+            document.getElementById("safe-overlay").style.display = "flex";
+            safeCode = "";
+            document.getElementById("safe-display").innerText = "----";
+        }
+        function safeInput(num) {
+            if(safeCode.length < 4) {
+                safeCode += num;
+                document.getElementById("safe-display").innerText = safeCode;
+            }
+        }
+        function safeClear() {
+            safeCode = "";
+            document.getElementById("safe-display").innerText = "----";
+        }
+        function closeSafe() {
+            document.getElementById("safe-overlay").style.display = "none";
+            showMainMenu();
+        }
+        function safeCheck() {
+            if (safeCode === "5974") {
+                document.getElementById("safe-overlay").style.display = "none";
+                gameState.openedSafe = true;
+                addToMemo("memo-clue-safe");
+                talkUpdate("システム", "金庫が開いた！手紙がある：『犯人は男。大柄ではない』<br><span class='gold'>（メモに記入した）</span>");
+            } else {
+                document.getElementById("safe-display").innerText = "ERROR";
+                document.getElementById("safe-display").style.color = "red";
+                setTimeout(() => {
+                    safeClear();
+                    document.getElementById("safe-display").style.color = "#0f0";
+                }, 500);
+            }
+
+            adjustChoiceHeight();
+        }
+
+        // --- 犯人指名＆ラストバトル ---
+        function pointCulprit() {
+            overlay.innerHTML = "";
+            nameEl.innerText = "推理";
+            textEl.innerHTML = "犯人は誰だ？";
+            
+            addChoice("館長", () => showBadEnd("館長は無実だった... 真犯人に逃げられた。"));
+            addChoice("用務員", () => showBadEnd("用務員はただの目撃者だった... 事件は迷宮入りだ。"));
+            addChoice("中年男性", () => startBattle());
+            addChoice("大柄な男性", () => showBadEnd("彼はただの大食いだった... 真犯人は笑っているだろう。"));
+
+            adjustChoiceHeight();
+        }
+
+        function startBattle() {
+            gameState.isBattleMode = true; 
+            overlay.innerHTML = "";
+            nameEl.innerText = "中年男性";
+            textEl.innerHTML = getHtmlText("txt-culprit-reveal"); 
+
+            // ★修正点5: 「クソばれたか」の表示時間を500msから3000msに延長
+            setTimeout(() => {
+                 nameEl.innerText = "クライマックス";
+                 textEl.innerHTML = getHtmlText("txt-battle-choice"); 
+                 
+                 addChoice("【説得する】", () => {
+                     overlay.style.display = "none";
+                     nameEl.innerText = "結果";
+                     textEl.innerHTML = getHtmlText("txt-end-bad");
+                     showEndMenu(false);
+                 });
+                 
+                 addChoice("【突撃する】", () => {
+                     overlay.style.display = "none";
+                     nameEl.innerText = "結果";
+                     textEl.innerHTML = getHtmlText("txt-end-good");
+                     showEndMenu(true);
+                 });
+            }, 1000); // 3秒待つ
+        }
+
+        function showBadEnd(msg) {
+            overlay.style.display = "none";
+            nameEl.innerText = "バッドエンド";
+            textEl.innerHTML = msg;
+            showEndMenu(false);
+        }
+
+        function showEndMenu(isGood) {
+            setTimeout(() => {
+                overlay.innerHTML = "";
+                overlay.style.display = "flex";
+                
+                const h = document.createElement("h2");
+                h.style.color = isGood ? "gold" : "red";
+                h.innerText = isGood ? "CONGRATULATIONS!" : "GAME OVER";
+                overlay.appendChild(h);
+
+                addChoice("タイトルへ戻る", () => location.reload());
+                addChoice("もう一度挑戦する", () => {
+                      location.reload(); 
+                });
+            }, 500);
+        }
+
+        function addChoice(txt, func) {
+            const btn = document.createElement("button");
+            btn.className = "menu-btn";
+            btn.innerHTML = txt;
+            btn.onclick = func;
+            overlay.appendChild(btn);
+        }
+
+        function adjustChoiceHeight() {
+            const count = overlay.querySelectorAll('.menu-btn').length;
+            let paddingTopValue = "10vh";
+            
+            switch (count) {
+                case 1: paddingTopValue = "35vh"; break; // 1個：中央寄り
+                case 2: paddingTopValue = "25vh"; break; // 2個：ゆったり
+                case 3: paddingTopValue = "20vh"; break; // 3個：標準
+                case 4: paddingTopValue = "15vh"; break; // 4個：少し高め
+                case 5: paddingTopValue = "10vh"; break; // 5個：メッセージ窓に被らないよう上へ
+                default: paddingTopValue = "10vh";
+        }
+        overlay.style.paddingTop = paddingTopValue;
+    }
+
+        function saveGame() { localStorage.setItem('save_v4', JSON.stringify(gameState)); alert("セーブ完了！"); }
+        function loadGame() {
+            const d = localStorage.getItem('save_v4');
+            if(d) { 
+                gameState = JSON.parse(d); 
+                changeScreen('game-screen'); 
+                updateMemoDisplay();
+                updateDisplay(); 
+            }
+        }
+        function showConfig() { document.getElementById('config-screen').classList.add('active'); }
+        function hideConfig() { document.getElementById('config-screen').classList.remove('active'); }
+    </script>
+</body>
+</html>
