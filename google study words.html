@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Learning App</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --primary: #38bdf8;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text);
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        .page { display: none; width: 100%; flex-direction: column; align-items: center; min-height: 100vh; }
+        .active-page { display: flex; }
+
+        /* Burger Button */
+        .burger-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 70px;
+            height: 70px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .burger-btn:hover { border-color: var(--primary); }
+        .burger-btn svg { fill: #94a3b8; width: 35px; height: 35px; }
+
+        /* Sidebar Wall */
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 150; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .sidebar-wall {
+            position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100%;
+            background: var(--card-bg); z-index: 160; transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-right: 2px solid var(--border); display: flex; flex-direction: column;
+            padding: 40px 20px; box-sizing: border-box;
+        }
+        .sidebar-wall.open { transform: translateX(0); }
+
+        .sidebar-header { font-size: 1.8rem; font-weight: 900; color: var(--primary); margin-bottom: 40px; padding-left: 10px; }
+
+        .sidebar-item {
+            display: flex; align-items: center; gap: 15px; padding: 18px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease; margin-bottom: 12px; color: #94a3b8;
+            font-weight: 700; font-size: 1.2rem;
+        }
+        .sidebar-item:hover { background: rgba(56, 189, 248, 0.1); color: var(--text); }
+        .sidebar-item svg { width: 28px; height: 28px; fill: currentColor; }
+
+        /* Back Button */
+        .back-btn {
+            position: fixed; top: 20px; left: 20px; width: 70px; height: 70px;
+            background: var(--card-bg); border-radius: 50%; border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            z-index: 110; visibility: hidden; opacity: 0; transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .back-btn-show { visibility: visible; opacity: 1; }
+        .back-btn svg { fill: var(--text); width: 30px; height: 30px; }
+
+        /* EXP Display */
+        .exp-container { position: fixed; top: 20px; right: 30px; text-align: right; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; }
+        .exp-text { color: var(--primary); font-weight: 900; font-size: 1.8rem; margin: 0; }
+        .exp-underline { width: 140px; height: 3px; background-color: var(--primary); }
+
+        /* カスタムモーダル (アラート) */
+        .custom-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; transition: opacity 0.2s ease;
+        }
+        .custom-modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: var(--card-bg); padding: 35px 25px; border-radius: 20px;
+            border: 3px solid var(--border); text-align: center; max-width: 400px; width: 85%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            transform: scale(0.9); transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .custom-modal.show .modal-content { transform: scale(1); }
+        .modal-content p { font-size: 1.3rem; font-weight: 700; color: #fff; margin: 0 0 30px 0; line-height: 1.6; }
+        .modal-actions { display: flex; gap: 15px; justify-content: center; }
+        .modal-btn { padding: 12px 25px; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; border: none; flex: 1; transition: 0.1s; }
+        .modal-btn:active { transform: translateY(3px); }
+        .ok-btn { background: var(--primary); color: #fff; }
+        .cancel-btn { background: #475569; color: #fff; }
+
+        /* Mochi Chick Wrapper */
+        .chick-wrapper {
+            position: absolute; width: 208px; height: 320px; transform: scale(0.40); transform-origin: top center;
+            cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;
+            z-index: 15; transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); 
+        }
+        
+        .chick-pos-menu { right: -95%; top: 100px; }
+        .chick-pos-steps { right: -290%; top: 180px; } 
+        .chick-pos-quiz { position: fixed !important; right: 40px !important; top: auto !important; bottom: 80px !important; transform-origin: bottom center !important; }
+        
+        /* 着せ替え用ポジション修正 */
+        .chick-pos-dressup { 
+            position: relative !important; 
+            right: auto !important; 
+            top: 10px !important; 
+            bottom: auto !important; 
+            transform: scale(0.7) !important; 
+            transform-origin: top center !important; 
+            margin: 0 auto !important; 
+            cursor: default;
+        }
+
+        /* 吹き出し */
+        .chick-bubble {
+            position: absolute; top: -140px; left: 50%; transform: translateX(-50%) scale(0);
+            background: #ffffff; color: #0f172a; padding: 15px 30px; border-radius: 30px;
+            font-size: 2.8rem; font-weight: 600; white-space: nowrap; box-shadow: 0 8px 0 rgba(203, 213, 225, 0.85);
+            opacity: 0; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 30; pointer-events: none; transform-origin: bottom center;
+        }
+        .chick-bubble::after { content: ''; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); border-width: 15px 15px 0; border-style: solid; border-color: #ffffff transparent transparent transparent; }
+        .chick-bubble.show { transform: translateX(-50%) scale(1); opacity: 1; }
+        
+        .chick-pos-dressup .chick-bubble { display: none !important; }
+
+        /* Platform */
+        .chick-platform {
+            position: absolute; bottom: 45px; width: 220px; height: 60px; background: #475569; border-radius: 110px / 25px; z-index: 1; box-shadow: 0 20px 0 #1e293b; 
+        }
+        .chick-platform::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; height: 50px; background: #64748b; border-radius: 50%; }
+
+        /* Chick Group */
+        #chick-main-group { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; margin-bottom: 110px; }
+
+        .chick-hair {
+            position: absolute; top: -15px; width: 15px; height: 25px; border-right: 4px solid rgba(0,0,0,0.15); border-radius: 0 50% 0 0; transform: rotate(-20deg); animation: hair-sway 3s ease-in-out infinite; transform-origin: bottom; z-index: 3;
+        }
+        @keyframes hair-sway { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(-10deg); } }
+
+        .chick-body {
+            position: relative; width: 208px; height: 192px; background: #fde047; border-radius: 50% 50% 45% 45%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid rgba(255, 255, 255, 0.4); z-index: 2; transition: background 0.3s ease;
+        }
+
+        .chick-eye-row { display: flex; gap: 38px; margin-top: 45px; margin-bottom: 5px; transition: transform 0.2s ease-out; position: relative; z-index: 4; }
+        .chick-eye { width: 24px; height: 24px; background: #27272a; border-radius: 50%; position: relative; overflow: hidden; transition: all 0.2s ease; }
+        .chick-eye::after { content: ''; position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; background: white; border-radius: 50%; opacity: 0.9; }
+        @keyframes chick-blink { 0%, 94%, 98%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+        .chick-eye.normal { animation: chick-blink 5s infinite; transform-origin: center; }
+        .chick-eye.happy { background: transparent; border-top: 8px solid #27272a; border-radius: 50% 50% 0 0; height: 12px; transform: translateY(8px); animation: none; }
+        .chick-eye.happy::after { display: none; }
+        .chick-eye.sad { background: transparent; border-top: 8px solid #27272a; border-radius: 50% 50% 0 0; height: 12px; animation: none; }
+        .chick-eye.sad:nth-child(1) { transform: rotate(20deg) translateY(8px); }
+        .chick-eye.sad:nth-child(2) { transform: rotate(-20deg) translateY(8px); }
+        .chick-eye.sad::after { display: none; }
+
+        .chick-beak { width: 32px; height: 22px; background: #fb923c; border-radius: 50%; border-bottom: 3px solid #f97316; margin-top: 5px; position: relative; z-index: 4; }
+        
+        .chick-blush { position: absolute; width: 26px; height: 14px; background: #fca5a5; border-radius: 50%; filter: blur(2px); opacity: 0.8; top: 110px; z-index: 4; }
+        .chick-blush.left { left: 42px; }
+        .chick-blush.right { right: 42px; }
+
+        .chick-wing { position: absolute; width: 45px; height: 50px; background: #fde047; border-radius: 50%; top: 90px; z-index: 5; transition: transform 0.3s ease, background 0.3s ease; }
+        .chick-wing.left { left: -15px; border-left: 2px solid rgba(255,255,255,0.3); transform: rotate(15deg); transform-origin: right center; }
+        .chick-wing.right { right: -15px; border-right: 2px solid rgba(255,255,255,0.3); transform: rotate(-15deg); transform-origin: left center; }
+
+        @keyframes wing-flap-l { 0%, 100% { transform: rotate(15deg); } 50% { transform: rotate(-40deg); } }
+        @keyframes wing-flap-r { 0%, 100% { transform: rotate(-15deg); } 50% { transform: rotate(40deg); } }
+        .flapping-l { animation: wing-flap-l 0.15s infinite ease-in-out; }
+        .flapping-r { animation: wing-flap-r 0.15s infinite ease-in-out; }
+
+        .chick-leg-row { display: flex; justify-content: center; gap: 40px; width: 100%; margin-top: -10px; position: relative; z-index: 2; }
+        .chick-leg { width: 10px; height: 25px; background: #fb923c; border-radius: 5px; }
+
+        /* 着せ替えアイテムの形状 */
+        .crown-shape { width: 50px; height: 30px; background: linear-gradient(to bottom, #fde047, #f59e0b); clip-path: polygon(0 0, 20% 50%, 50% 0, 80% 50%, 100% 0, 100% 100%, 0 100%); position: relative; }
+        .crown-shape::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 5px; background: #b45309; }
+        
+        .cap-shape { width: 45px; height: 25px; background: #ef4444; border-radius: 20px 20px 0 0; position: relative; margin-bottom: 5px; }
+        .cap-shape::after { content: ''; position: absolute; bottom: 0; left: 15px; width: 35px; height: 6px; background: #dc2626; border-radius: 3px; }
+        
+        .ribbon-shape { width: 40px; height: 20px; background: #ec4899; clip-path: polygon(0 0, 100% 0, 75% 50%, 100% 100%, 0 100%, 25% 50%); }
+
+        /* 装備時配置 */
+        .equip-crown { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 6; }
+        .equip-cap { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 6; }
+        .equip-ribbon { position: absolute; top: 0px; right: 15px; transform: rotate(15deg); z-index: 6; }
+
+        /* Titles */
+        .title-container { margin-top: 60px; text-align: center; width: auto; display: inline-flex; flex-direction: column; align-items: center; position: relative; }
+        .subtitle { font-size: 1.8rem; font-weight: 900; color: var(--primary); letter-spacing: 0.2em; margin-bottom: -5px; }
+        h1 { font-size: 5rem; margin: 0; color: #ffffff; text-shadow: 4px 4px 0px #0ea5e9; letter-spacing: 0.1em; font-weight: 900; }
+        .main-line { width: 400px; height: 6px; background: #ffffff; margin-top: 15px; border-radius: 10px; }
+
+        /* 各サブページのタイトル */
+        .page-title { font-size: 2.5rem; margin: 0; color: #fff; text-shadow: 2px 2px 0px rgba(0,0,0,0.2); font-weight: 900; }
+        .page-underline { width: 150px; height: 4px; border-radius: 4px; margin-top: 8px; margin-left: auto; margin-right: auto; }
+
+        /* Menu Grid */
+        .box-container { display: flex; gap: 20px; margin-top: 60px; justify-content: center; width: 92%; max-width: 1100px; }
+        .box { background-color: var(--card-bg); border-radius: 25px; height: 350px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; border: 3px solid var(--border); color: #ffffff; position: relative; overflow: hidden; }
+        .box:hover { transform: translateY(-8px) scale(1.02); border-color: var(--lc); }
+        .box-title { font-weight: 900; font-size: 2.2rem; margin-bottom: 12px; z-index: 2; } 
+        .box-line { width: 60%; height: 6px; background-color: var(--lc); border-radius: 3px; z-index: 2; }
+        .box-progress-text { font-size: 1.4rem; font-weight: 700; margin-top: 15px; color: #94a3b8; z-index: 2; }
+
+        /* Steps Layout */
+        .steps-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding-bottom: 100px; flex-grow: 1; margin-top: 110px; }
+        .snake-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; width: 100%; gap: 25px; max-width: 900px; }
+        .step-unit { position: relative; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
+        .progress-ring { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); z-index: 5; pointer-events: none; }
+        .ring-bg { fill: #1e293b; stroke: #334155; stroke-width: 10; }
+        .ring-fill { fill: none; stroke: var(--lc); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 440; stroke-dashoffset: 440; transition: stroke-dashoffset 0.8s ease; }
+        
+        .unit-button { position: relative; width: 110px; height: 110px; background-color: var(--lc); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.3); z-index: 10; border: none; transition: all 0.1s ease; }
+        .unit-button:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+        .unit-button span { color: white; font-size: 2.8rem; font-weight: 900; }
+        .unit-button svg { width: 55px; height: 55px; fill: white; }
+
+        /* Quiz UI */
+        .matching-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 95%; max-width: 700px; margin-top: 30px; }
+        .match-item { 
+            background: var(--card-bg); 
+            border: 3px solid var(--border); 
+            padding: 15px 8px; 
+            border-radius: 18px; 
+            text-align: center; 
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            cursor: pointer; 
+            color: #fff; 
+            transition: all 0.2s; 
+            box-shadow: 0 5px 0 var(--border); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+            line-height: 1.2;
+        }
+        .match-item.selected { border-color: var(--primary); background: #0ea5e9; box-shadow: 0 5px 0 #0284c7; transform: translateY(3px); }
+        .match-item.solved { opacity: 0; transform: scale(0.8); pointer-events: none; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+        .match-item.correct-match { background: #22c55e !important; border-color: #16a34a !important; box-shadow: 0 5px 0 #15803d !important; transform: scale(1.05) translateY(-3px); }
+        .match-item.wrong-match { background: #ef4444 !important; border-color: #b91c1c !important; box-shadow: 0 5px 0 #991b1b !important; animation: shake 0.4s ease-in-out; }
+
+        .progress-bar-container { width: 85%; max-width: 700px; height: 14px; background: var(--border); border-radius: 12px; margin-top: 25px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ショップ・着せ替え UI */
+        .shop-wrapper { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: flex-start; align-items: stretch; gap: 25px; width: max-content; max-width: 95%; margin: 30px auto 50px auto; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 15px; }
+        .shop-wrapper::-webkit-scrollbar { height: 12px; }
+        .shop-wrapper::-webkit-scrollbar-track { background: var(--bg-dark); border-radius: 10px; }
+        .shop-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .shop-wrapper::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .shop-section { display: flex; flex-direction: column; align-items: center; background: rgba(30, 41, 59, 0.4); border-radius: 25px; padding: 25px; box-sizing: border-box; border: 2px dashed var(--border); width: max-content; flex: none; }
+        .shop-section-title { color: #f8fafc; font-size: 1.3rem; margin-bottom: 25px; font-weight: 900; background: var(--card-bg); border: 2px solid var(--border); padding: 10px 0; border-radius: 20px; width: 100%; text-align: center; box-sizing: border-box; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        
+        .shop-items-container { display: flex; flex-wrap: nowrap; gap: 20px; justify-content: flex-start; }
+        .shop-item { background: var(--card-bg); border: 3px solid var(--border); border-radius: 20px; padding: 25px 20px; width: 160px; text-align: center; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; box-sizing: border-box; flex-shrink: 0; }
+        .shop-item:hover { transform: translateY(-3px); border-color: #475569; }
+        .shop-item.equipped { border-color: var(--primary); background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+
+        .shop-icon-wrapper { height: 70px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .shop-item h3 { margin: 0 0 10px 0; color: #fff; font-size: 1.2rem; font-weight: 900;}
+        .shop-item .price { color: var(--primary); font-weight: 900; font-size: 1.1rem; margin-bottom: 20px; }
+        .shop-btn { background: #10b981; color: #fff; border: none; padding: 12px 15px; border-radius: 12px; cursor: pointer; font-weight: 900; font-size: 1.1rem; width: 100%; transition: all 0.2s; margin-top: auto;}
+        .shop-btn:hover:not(:disabled) { background: #059669; }
+        .shop-btn:active:not(:disabled) { transform: translateY(2px); }
+        .shop-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; transform: none; }
+
+        /* 辞書 UI */
+        .dict-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding-bottom: 50px; margin-top: 40px; }
+        
+        .dict-tabs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: 95%; max-width: 800px; margin-top: 25px; }
+        .dict-tab { padding: 12px 18px; background: var(--card-bg); border: 2px solid var(--border); border-radius: 12px; color: #94a3b8; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 1.1rem; flex: 1; min-width: 120px; text-align: center; }
+        .dict-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 0 #0284c7; transform: translateY(-2px); }
+        .dict-tab:hover:not(.active) { background: #334155; color: #fff; }
+
+        /* 横5列のグリッドレイアウト（レスポンシブ対応・中央揃え） */
+        .dict-word-list { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 15px; 
+            width: 95%; 
+            max-width: 1000px; 
+            margin: 30px auto 0 auto; 
+        }
+        
+        .dict-word-card { 
+            width: calc(20% - 12px); 
+            min-width: 110px; 
+            background: var(--card-bg); 
+            border: 2px solid var(--border); 
+            border-radius: 15px; 
+            padding: 25px 8px 15px 8px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            gap: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+            transition: transform 0.2s; 
+            position: relative; 
+            box-sizing: border-box;
+            word-break: break-word; 
+        }
+        .dict-word-card:hover { transform: translateY(-3px); border-color: #475569; }
+
+        @media (max-width: 768px) {
+            .dict-word-card { width: calc(33.333% - 10px); }
+        }
+        @media (max-width: 480px) {
+            .dict-word-card { width: calc(50% - 8px); }
+        }
+
+        /* サウンドアイコン */
+        .sound-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 22px;
+            height: 22px;
+            fill: #94a3b8;
+            cursor: pointer;
+            transition: fill 0.2s, transform 0.2s;
+            z-index: 10;
+        }
+        .sound-icon:hover {
+            fill: var(--primary);
+            transform: scale(1.1);
+        }
+        .sound-icon:active {
+            transform: scale(0.9);
+        }
+        
+        /* 設定 UI */
+        .settings-container { display: flex; flex-direction: column; gap: 20px; width: 90%; max-width: 500px; margin-top: 40px; }
+        .settings-card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 16px; padding: 30px; text-align: center; }
+        
+        .command-input { padding: 12px 15px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-dark); color: white; font-size: 1.1rem; outline: none; flex: 1; min-width: 0; text-align: center; }
+        .command-btn { padding: 12px 20px; border: none; border-radius: 12px; color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.1s; }
+        .command-btn:hover { filter: brightness(1.1); }
+        .command-btn:active { transform: translateY(2px); }
+
+    </style>
+</head>
+<body>
+
+    <div id="burger-btn" class="burger-btn" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+    </div>
+
+    <div id="back-btn" class="back-btn" onclick="handleBack()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </div>
+
+    <div class="exp-container">
+        <div class="exp-text" id="exp-display">0 XP</div>
+        <div class="exp-underline"></div>
+    </div>
+
+    <!-- カスタムモーダル -->
+    <div id="custom-modal" class="custom-modal">
+        <div class="modal-content">
+            <p id="modal-msg">メッセージ</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="modal-btn cancel-btn">キャンセル</button>
+                <button id="modal-ok" class="modal-btn ok-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="menu-page" class="page active-page">
+        <div class="title-container">
+            <div class="subtitle">中学</div>
+            <h1>英単語</h1>
+            <div class="main-line"></div>
+            
+            <div id="chick-container" class="chick-wrapper chick-pos-menu" onclick="chickJump()">
+                <div id="chick-platform" class="chick-platform"></div>
+                <div id="chick-main-group">
+                    <div id="chick-bubble" class="chick-bubble"></div>
+                    <div id="chick-main" class="chick-body">
+                        <div id="chick-accessory"></div>
+                        <div class="chick-hair"></div>
+                        <div class="chick-eye-row" id="chick-eyes">
+                            <div class="chick-eye normal"></div>
+                            <div class="chick-eye normal"></div>
+                        </div>
+                        <div class="chick-beak"></div>
+                        <div class="chick-blush left"></div>
+                        <div class="chick-blush right"></div>
+                        <div class="chick-wing left" id="chick-wing-l"></div>
+                        <div class="chick-wing right" id="chick-wing-r"></div>
+                    </div>
+                    <div id="chick-legs" class="chick-leg-row">
+                        <div class="chick-leg"></div>
+                        <div class="chick-leg"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box-container">
+            <div class="box" id="box-入門" style="--lc:#38bdf8" onclick="openSteps('入門')">
+                <span class="box-title">入門</span>
+                <div class="box-line"></div>
+                <div class="box-progress-text" id="prog-text-入門">0 / 450</div>
+            </div>
+            <div class="box" id="box-初級" style="--lc:#22c55e" onclick="openSteps('初級')">
+                <span class="box-title">初級</span>
+                <div class="box-line"></div>
+                <div class="box-progress-text" id="prog-text-初級">0 / 450</div>
+            </div>
+            <div class="box" id="box-中級" style="--lc:#eab308" onclick="openSteps('中級')">
+                <span class="box-title">中級</span>
+                <div class="box-line"></div>
+                <div class="box-progress-text" id="prog-text-中級">0 / 450</div>
+            </div>
+            <div class="box" id="box-上級" style="--lc:#ef4444" onclick="openSteps('上級')">
+                <span class="box-title">上級</span>
+                <div class="box-line"></div>
+                <div class="box-progress-text" id="prog-text-上級">0 / 450</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Steps -->
+    <div id="steps-page" class="page">
+        <div class="title-container" id="steps-title-container" style="margin-top: 50px; display: flex;">
+            <div style="text-align: center;">
+                <h2 id="step-title" style="font-size: 4.5rem; margin:0; color: #fff; text-shadow: 3px 3px 0px rgba(0,0,0,0.2); font-weight: 900;"></h2>
+                <div id="step-underline" style="width:180px; height:6px; border-radius:10px; margin-top:8px; margin-left: auto; margin-right: auto;"></div>
+            </div>
+        </div>
+        <div class="steps-wrapper" id="steps-list"></div>
+    </div>
+
+    <!-- Quiz Session -->
+    <div id="quiz-page" class="page">
+        <div class="title-container quiz-title-area" style="display: flex;">
+            <div style="text-align: center;">
+                <div id="quiz-header" style="color: var(--primary); font-weight: 900; font-size: 1.8rem;"></div>
+                <h2 id="quiz-sub" style="font-size: 1.8rem; margin: 15px 0;">ペアを選んでね！</h2>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div id="quiz-progress-bar" class="progress-bar-fill"></div>
+        </div>
+        <div class="matching-container">
+            <div id="col-en" style="display:flex; flex-direction:column; gap:12px;"></div>
+            <div id="col-ja" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+    </div>
+
+    <!-- ショップ -->
+    <div id="shop-page" class="page">
+        <div class="title-container" style="margin-top: 50px;">
+            <h2 class="page-title">ショップ</h2>
+            <div class="page-underline" style="background:#10b981;"></div>
+        </div>
+        <div class="shop-wrapper" id="shop-grid"></div>
+    </div>
+
+    <!-- 着せ替え -->
+    <div id="dressup-page" class="page">
+        <div class="title-container" id="dressup-title-container" style="margin-top: 50px; margin-bottom: -110px;">
+            <h2 class="page-title">着せ替え</h2>
+            <div class="page-underline" style="background:#ec4899;"></div>
+        </div>
+        <div class="shop-wrapper" id="dressup-grid" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- 辞書 -->
+    <div id="dictionary-page" class="page">
+        <div class="title-container" style="margin-top: 50px;">
+            <h2 class="page-title">辞書</h2>
+            <div class="page-underline" style="background:var(--primary);"></div>
+        </div>
+        <div class="dict-container" id="dict-list"></div>
+    </div>
+
+    <!-- 設定 -->
+    <div id="settings-page" class="page">
+        <div class="title-container" style="margin-top: 50px;">
+            <h2 class="page-title">設定</h2>
+            <div class="page-underline" style="background:#94a3b8;"></div>
+        </div>
+        
+        <div class="settings-container">
+            <div class="settings-card">
+                <h3 style="color: #f8fafc; font-size: 1.3rem; margin-top: 0;">コマンド入力</h3>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <input type="text" id="command-input" class="command-input" placeholder="秘密のコマンド">
+                    <button class="command-btn" style="background: var(--primary);" onclick="executeCommand()">実行</button>
+                </div>
+            </div>
+
+            <div class="settings-card" style="border-color: #7f1d1d;">
+                <h3 style="color: #ef4444; font-size: 1.3rem; margin-top: 0;">危険な操作</h3>
+                <button class="command-btn" style="background: #ef4444; width: 100%; margin-top: 20px;" onclick="resetData()">データをすべて削除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Wall -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar-wall" class="sidebar-wall">
+        <div class="sidebar-header">MENU</div>
+        <div class="sidebar-item" onclick="navigate('shop')">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            <span>ショップ</span>
+        </div>
+        <div class="sidebar-item" onclick="navigate('dressup')">
+            <svg viewBox="0 0 24 24"><path d="M12 2.5c-1.35 0-2.52.82-3.03 2H3.5l-2 5h4v11h13V9.5h4l-2-5h-5.47c-.51-1.18-1.68-2-3.03-2z"/></svg>
+            <span>着せ替え</span>
+        </div>
+        <div class="sidebar-item" onclick="navigate('dictionary')">
+            <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-1.1-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+            <span>辞書</span>
+        </div>
+        <div class="sidebar-item" onclick="navigate('settings')">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            <span>設定</span>
+        </div>
+    </div>
+
+    <script>
+        // 音声読み上げエンジンの初回遅延を防ぐウォームアップ処理
+        let speechWarmupDone = false;
+        function initSpeech() {
+            if (!speechWarmupDone && 'speechSynthesis' in window) {
+                const u = new SpeechSynthesisUtterance('');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+                
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                speechWarmupDone = true;
+            }
+        }
+        document.addEventListener('pointerdown', initSpeech, {once: true});
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+
+            if (type === 'clear') {
+                const notes =[523.25, 659.25, 783.99, 1046.50]; 
+                notes.forEach((freq, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(freq, now + i * 0.1);
+                    g.gain.setValueAtTime(0.1, now + i * 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.15);
+                    o.start(now + i * 0.1);
+                    o.stop(now + i * 0.1 + 0.2);
+                });
+                return;
+            }
+
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+
+            if(type === 'correct') { 
+                o.frequency.setValueAtTime(523, now); 
+                o.frequency.exponentialRampToValueAtTime(1046, now+0.1); 
+                g.gain.setValueAtTime(0.1, now); 
+                o.start(); o.stop(now+0.1);
+            }
+            else if(type === 'wrong') { 
+                o.type = 'sawtooth'; 
+                o.frequency.setValueAtTime(100, now); 
+                g.gain.setValueAtTime(0.05, now); 
+                o.start(); o.stop(now+0.2); 
+            }
+            else if(type === 'land') { 
+                o.frequency.setValueAtTime(150, now); 
+                o.frequency.exponentialRampToValueAtTime(40, now+0.1); 
+                g.gain.setValueAtTime(0.05, now); 
+                o.start(); o.stop(now+0.1); 
+            }
+            else if(type === 'click') { 
+                o.type = 'sine';
+                o.frequency.setValueAtTime(800, now); 
+                o.frequency.exponentialRampToValueAtTime(400, now+0.05); 
+                g.gain.setValueAtTime(0.05, now); 
+                o.start(); o.stop(now+0.05);
+            }
+        }
+
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function showModal(msg, isConfirm, onOk) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-msg').innerHTML = msg.replace(/\n/g, "<br>");
+            const cancelBtn = document.getElementById('modal-cancel');
+            const okBtn = document.getElementById('modal-ok');
+            
+            cancelBtn.style.display = isConfirm ? 'inline-block' : 'none';
+            
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newOkBtn.onclick = () => {
+                playSound('click');
+                modal.classList.remove('show');
+                setTimeout(() => { modal.style.display = 'none'; }, 200);
+                if (onOk) onOk();
+            };
+
+            newCancelBtn.onclick = () => {
+                playSound('click');
+                modal.classList.remove('show');
+                setTimeout(() => { modal.style.display = 'none'; }, 200);
+            };
+
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function showAlert(msg) { showModal(msg, false); }
+        function showConfirm(msg, onOk) { showModal(msg, true, onOk); }
+
+        let xp = 0, curLevel = "", curPage = "menu";
+        let levelProgress = { "入門": Array(5).fill(0), "初級": Array(5).fill(0), "中級": Array(5).fill(0), "上級": Array(5).fill(0) };
+        let ownedItems = ["color_yellow"];
+        let equippedAcc = null;
+        let equippedColor = "color_yellow";
+        let wrongWords =[]; 
+
+        function loadData() {
+            const saved = localStorage.getItem('englishAppSave');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.xp !== undefined) xp = data.xp;
+                    if (data.levelProgress) levelProgress = data.levelProgress;
+                    if (data.ownedItems) {
+                        ownedItems = data.ownedItems;
+                        if(!ownedItems.includes("color_yellow")) ownedItems.push("color_yellow");
+                    }
+                    if (data.equippedItem !== undefined) equippedAcc = data.equippedItem;
+                    if (data.equippedAcc !== undefined) equippedAcc = data.equippedAcc;
+                    if (data.equippedColor !== undefined) equippedColor = data.equippedColor;
+                    if (data.wrongWords) wrongWords = data.wrongWords;
+                } catch (e) {
+                    console.error("データの読み込みに失敗", e);
+                }
+            }
+        }
+
+        function saveData() {
+            const data = { xp, levelProgress, ownedItems, equippedAcc, equippedColor, wrongWords };
+            localStorage.setItem('englishAppSave', JSON.stringify(data));
+        }
+
+        function resetData() {
+            playSound('click');
+            showConfirm("本当にすべてのデータを削除しますか？\nこの操作は取り消せません。", () => {
+                localStorage.removeItem('englishAppSave');
+                showAlert("データを削除しました。");
+                setTimeout(() => location.reload(), 1500); 
+            });
+        }
+
+        const shopItems = {
+            "cap": { name: "赤キャップ", price: 150, type: "acc", shape: "cap-shape", equip: "equip-cap" },
+            "ribbon": { name: "ピンクリボン", price: 150, type: "acc", shape: "ribbon-shape", equip: "equip-ribbon" },
+            "crown": { name: "王冠", price: 300, type: "acc", shape: "crown-shape", equip: "equip-crown" },
+            
+            "color_yellow": { name: "黄色（標準）", price: 0, type: "color", color: "#fde047" },
+            "color_white": { name: "白", price: 200, type: "color", color: "#f8fafc" }
+        };
+
+        const colors = { "入門":"#38bdf8", "初級":"#22c55e", "中級":"#eab308", "上級":"#ef4444" };
+        const xpRewards = { "入門": 3, "初級": 5, "中級": 7, "上級": 10 };
+
+        const dictionaryData = {
+            "入門":[
+                {e:"the",j:"その"},{e:"to",j:"～へ・～するために"},{e:"I",j:"私は"},{e:"a,an",j:"ひとつの"},{e:"in",j:"～の中に"},{e:"and",j:"そして・～と"},{e:"you",j:"あなたは"},{e:"is",j:"～です・ある"},{e:"of",j:"～の"},{e:"it",j:"それは"},{e:"have",j:"持っている・食べる"},{e:"not",j:"～でない"},{e:"was",j:"～だった"},{e:"that",j:"あれ・その・～ということ"},{e:"for",j:"～のために"},{e:"he",j:"彼は"},{e:"do",j:"する"},{e:"are",j:"～です・いる"},{e:"we",j:"私たちは"},{e:"about",j:"～について・およそ"},{e:"will",j:"～だろう・意志"},{e:"they",j:"彼らは"},{e:"people",j:"人々"},{e:"she",j:"彼女は"},{e:"at",j:"～で・～に"},{e:"can",j:"できる・缶"},{e:"my",j:"私の"},{e:"go",j:"行く"},{e:"with",j:"～と一緒に"},{e:"say",j:"言う"},{e:"but",j:"しかし"},{e:"on",j:"～の上に"},{e:"want",j:"欲しい"},{e:"when",j:"いつ・～の時"},{e:"there",j:"そこに"},{e:"this",j:"これ"},{e:"what",j:"何"},{e:"so",j:"だから・とても"},{e:"from",j:"～から"},{e:"her",j:"彼女の・彼女を"},{e:"his",j:"彼の"},{e:"think",j:"思う・考える"},{e:"did",j:"した(doの過去形)"},{e:"make",j:"作る"},{e:"very",j:"とても"},{e:"me",j:"私を・私に"},{e:"like",j:"好き・～のような"},{e:"see",j:"見る・会う"},{e:"many",j:"たくさんの"},{e:"one",j:"１つ・人"},{e:"because",j:"なぜなら"},{e:"them",j:"彼らを"},{e:"be",j:"～になる・ある"},{e:"some",j:"いくつかの"},{e:"how",j:"どのように"},{e:"school",j:"学校"},{e:"time",j:"時間・回"},{e:"your",j:"あなたの"},{e:"know",j:"知っている"},{e:"am",j:"～です・いる"},{e:"good",j:"良い"},{e:"get",j:"手に入れる・着く"},{e:"were",j:"～だった"},{e:"day",j:"日"},{e:"more",j:"もっと"},{e:"their",j:"彼らの"},{e:"thing",j:"もの・こと"},{e:"use",j:"使う"},{e:"as",j:"～として・～の時"},{e:"come",j:"来る"},{e:"other",j:"他の"},{e:"look",j:"見る・～に見える"},{e:"take",j:"取る・連れていく・（時間が）かかる"},{e:"year",j:"年"},{e:"by",j:"～によって・そばに"},{e:"our",j:"私たちの"},{e:"student",j:"生徒"},{e:"talk",j:"話す"},{e:"Mr.",j:"～さん(男性)"},{e:"all",j:"全ての"},{e:"English",j:"英語"},{e:"now",j:"今"},{e:"Japanese",j:"日本の・日本人・日本語"},{e:"find",j:"見つける・わかる"},{e:"if",j:"もし～なら"},{e:"tell",j:"教える・伝える"},{e:"him",j:"彼を"},{e:"yes",j:"はい"},{e:"after",j:"～の後で"},{e:"work",j:"仕事・働く"},{e:"or",j:"または"},{e:"who",j:"誰"},{e:"Japan",j:"日本"},{e:"first",j:"最初の"},{e:"lot",j:"たくさん"},{e:"could",j:"できた"},{e:"then",j:"その時・それから"},{e:"give",j:"与える"},{e:"learn",j:"学ぶ"},{e:"us",j:"私たちを"},{e:"help",j:"助ける"},{e:"also",j:"～もまた"},{e:"well",j:"上手に・健康な・ええと"},{e:"should",j:"すべきだ"},{e:"book",j:"本・予約する"},{e:"ask",j:"尋ねる・頼む"},{e:"friend",j:"友達"},{e:"play",j:"遊ぶ・演奏する"},{e:"than",j:"～よりも"},{e:"why",j:"なぜ"},{e:"too",j:"～も・あまりに～すぎる"},{e:"enjoy",j:"楽しむ"},{e:"study",j:"勉強する"},{e:"man",j:"男性"},{e:"old",j:"古い・年とった"},{e:"no",j:"いいえ・少しも～ない"},{e:"question",j:"質問"},{e:"way",j:"道・方法"},{e:"country",j:"国・田舎"},{e:"two",j:"２"},{e:"next",j:"次の"},{e:"food",j:"食べ物"},{e:"become",j:"～になる"},{e:"try",j:"試す・努力する"},{e:"read",j:"読む"},{e:"much",j:"多量の・ずっと"},{e:"new",j:"新しい"},{e:"thank",j:"感謝する"},{e:"live",j:"住む・生きる"},{e:"start",j:"始める・出発する"},{e:"happy",j:"幸せな"},{e:"right",j:"正しい・右"},{e:"really",j:"本当に"},{e:"child",j:"子供"},{e:"something",j:"何か"},{e:"world",j:"世界"},{e:"need",j:"必要とする"},{e:"important",j:"重要な"},{e:"long",j:"長い"},{e:"life",j:"生活・人生"},{e:"eat",j:"食べる"},{e:"up",j:"上へ"},{e:"which",j:"どちら・どれ"},{e:"only",j:"～だけ"},{e:"visit",j:"訪れる"},{e:"show",j:"見せる"},{e:"mother",j:"母"},{e:"every",j:"毎～"},{e:"last",j:"最後の・この前の"},{e:"home",j:"家・家庭"},{e:"high",j:"高い"},{e:"before",j:"～の前に"},{e:"father",j:"父"},{e:"picture",j:"写真・絵"},{e:"hear",j:"聞こえる"},{e:"family",j:"家族"},{e:"buy",j:"買う"},{e:"place",j:"場所"},{e:"would",j:"～だろう"},{e:"different",j:"違った"},{e:"class",j:"クラス・授業"},{e:"these",j:"これら"},{e:"does",j:"する(三人称単数)"},{e:"kind",j:"親切な・種類"},{e:"house",j:"家"},{e:"hard",j:"一生懸命・硬い・難しい"},{e:"idea",j:"考え"},{e:"oh",j:"ああ"},{e:"write",j:"書く"},{e:"feel",j:"感じる"},{e:"woman",j:"女性"},{e:"word",j:"単語・言葉"},{e:"around",j:"～の周りに"},{e:"call",j:"呼ぶ・電話する"},{e:"today",j:"今日"},{e:"here",j:"ここに"},{e:"just",j:"ちょうど・ただ～だけ"},{e:"better",j:"より良い"},{e:"back",j:"背中・後ろへ"},{e:"out",j:"外へ"},{e:"understand",j:"理解する"},{e:"each",j:"それぞれの"},{e:"please",j:"お願いします・喜ばせる"},{e:"Ms.",j:"～さん(女性)"},{e:"water",j:"水"},{e:"small",j:"小さい"},{e:"big",j:"大きい"},{e:"let",j:"～させる"},{e:"may",j:"～かもしれない・～してもよい"},{e:"three",j:"３"},{e:"problem",j:"問題"},{e:"most",j:"最も・大部分の"},{e:"always",j:"いつも"},{e:"walk",j:"歩く・散歩"},{e:"great",j:"偉大な・すごい"},{e:"answer",j:"答える・答え"},{e:"teacher",j:"先生"},{e:"game",j:"試合・ゲーム"},{e:"again",j:"再び"},{e:"city",j:"市・都会"},{e:"leave",j:"去る・残す"},{e:"into",j:"～の中へ"},{e:"often",j:"しばしば"},{e:"speak",j:"話す"},{e:"watch",j:"見る・腕時計"},{e:"keep",j:"保つ・飼う"},{e:"same",j:"同じ"},{e:"week",j:"週"},{e:"change",j:"変える・お釣り"},{e:"where",j:"どこに"},{e:"any",j:"いくつかの・どんな～も"},{e:"money",j:"お金"},{e:"morning",j:"朝"},{e:"beautiful",j:"美しい"},{e:"meet",j:"会う"},{e:"future",j:"将来"},{e:"animal",j:"動物"},{e:"interested",j:"興味がある"},{e:"OK",j:"大丈夫"},{e:"name",j:"名前"},{e:"interesting",j:"面白い"},{e:"best",j:"最も良い"},{e:"difficult",j:"難しい"},{e:"little",j:"小さい・ほとんどない"},{e:"example",j:"例"},{e:"room",j:"部屋"},{e:"job",j:"仕事"},{e:"stay",j:"滞在する"},{e:"put",j:"置く"},{e:"sure",j:"確信して・もちろん"},{e:"never",j:"決して～ない"},{e:"together",j:"一緒に"},{e:"practice",j:"練習する"},{e:"another",j:"もう一つの"},{e:"dog",j:"犬"},{e:"town",j:"町"},{e:"stop",j:"止める・止まる"},{e:"mean",j:"意味する"},{e:"month",j:"月(暦)"},{e:"decide",j:"決める"},{e:"run",j:"走る・経営する"},{e:"clean",j:"きれいな・掃除する"},{e:"teach",j:"教える"},{e:"team",j:"チーム"},{e:"station",j:"駅"},{e:"young",j:"若い"},{e:"move",j:"動く・感動させる・引っ越す"},{e:"even",j:"～でさえ"},{e:"begin",j:"始める"},{e:"hope",j:"望む"},{e:"join",j:"参加する・つなぐ"},{e:"over",j:"～を越えて・終わって"},{e:"night",j:"夜"},{e:"experience",j:"経験・経験する"},{e:"been",j:"beの過去分詞"},{e:"remember",j:"覚えている・思い出す"},{e:"bring",j:"持ってくる"},{e:"love",j:"愛する・大好き"},{e:"near",j:"近くに"},{e:"America",j:"アメリカ"},{e:"library",j:"図書館"},{e:"hi",j:"やあ"},{e:"ago",j:"～前に"},{e:"park",j:"公園・駐車する"},{e:"boy",j:"男の子"},{e:"shop",j:"店"},{e:"part",j:"部分・役割"},{e:"nice",j:"すてきな"},{e:"club",j:"クラブ"},{e:"such",j:"そのような"},{e:"train",j:"電車・訓練する"},{e:"member",j:"一員"},{e:"everyone",j:"誰でも"},{e:"sometimes",j:"時々"},{e:"during",j:"～の間"},{e:"grow",j:"成長する・育てる"},{e:"story",j:"物語・階"},{e:"foreign",j:"外国の"},{e:"mountain",j:"山"},{e:"number",j:"数"},{e:"bus",j:"バス"},{e:"summer",j:"夏"},{e:"minute",j:"分"},{e:"easy",j:"簡単な"},{e:"still",j:"まだ・静かな"},{e:"listen",j:"聞く"},{e:"popular",j:"人気のある"},{e:"hour",j:"時間(1時間)"},{e:"sound",j:"音・～のように聞こえる"},{e:"few",j:"ほとんどない・少数の"},{e:"soon",j:"すぐに"},{e:"however",j:"しかしながら"},{e:"sleep",j:"眠る"},{e:"girl",j:"女の子"},{e:"down",j:"下へ"},{e:"course",j:"進路・コース"},{e:"sorry",j:"ごめんなさい・残念な"},{e:"festival",j:"祭り"},{e:"lunch",j:"昼食"},{e:"high school",j:"高校"},{e:"send",j:"送る"},{e:"surprised",j:"驚いた"},{e:"own",j:"自分の・所有する"},{e:"those",j:"あれら"},{e:"scientist",j:"科学者"},{e:"later",j:"後で"},{e:"person",j:"人"},{e:"music",j:"音楽"},{e:"enough",j:"十分な"},{e:"brother",j:"兄・弟"},{e:"usually",j:"たいてい"},{e:"away",j:"離れて"},{e:"believe",j:"信じる"},{e:"finish",j:"終える"},{e:"hand",j:"手・渡す"},{e:"light",j:"光・軽い・明るい"},{e:"through",j:"～を通して"},{e:"while",j:"～の間・一方で"},{e:"without",j:"～なしで"},{e:"five",j:"５"},{e:"dream",j:"夢"},{e:"smile",j:"微笑む"},{e:"sport",j:"スポーツ"},{e:"car",j:"車"},{e:"earth",j:"地球・大地"},{e:"movie",j:"映画"},{e:"letter",j:"手紙・文字"},{e:"four",j:"４"},{e:"tree",j:"木"},{e:"happen",j:"起こる"},{e:"anything",j:"何か・何でも"},{e:"wait",j:"待つ"},{e:"parent",j:"親"},{e:"second",j:"２番目の・秒"},{e:"open",j:"開ける・開いている"},{e:"player",j:"選手・演奏者"},{e:"able",j:"できる"},{e:"its",j:"それの"},{e:"hello",j:"こんにちは"},{e:"museum",j:"博物館・美術館"},{e:"care",j:"世話・気にする"},{e:"language",j:"言語"},{e:"special",j:"特別の"},{e:"Australia",j:"オーストラリア"},{e:"information",j:"情報"},{e:"group",j:"集団"},{e:"must",j:"～しなければならない・～に違いない"},{e:"famous",j:"有名な"},{e:"tea",j:"お茶"},{e:"sister",j:"姉・妹"},{e:"large",j:"大きい"},{e:"soccer",j:"サッカー"},{e:"paper",j:"紙・新聞"},{e:"culture",j:"文化"},{e:"bad",j:"悪い"},{e:"hold",j:"持つ・開催する"},{e:"restaurant",j:"レストラン"},{e:"tomorrow",j:"明日"},{e:"lose",j:"失う・負ける"},{e:"Sunday",j:"日曜日"},{e:"both",j:"両方"},{e:"bag",j:"かばん"},{e:"birthday",j:"誕生日"},{e:"wonderful",j:"すばらしい"},{e:"plant",j:"植物・植える"},{e:"flower",j:"花"},{e:"front",j:"前"},{e:"trip",j:"旅行"},{e:"yesterday",j:"昨日"},{e:"someone",j:"誰か"},{e:"choose",j:"選ぶ"},{e:"space",j:"宇宙・空間"},{e:"song",j:"歌"},{e:"volunteer",j:"ボランティア"},{e:"turn",j:"回る・曲がる・順番"},{e:"history",j:"歴史"},{e:"event",j:"行事"},{e:"travel",j:"旅行する"},{e:"bird",j:"鳥"},{e:"worry",j:"心配する"},{e:"favorite",j:"お気に入りの"},{e:"river",j:"川"},{e:"bike",j:"自転車"},{e:"early",j:"早い"},{e:"robot",j:"ロボット"},{e:"activity",j:"活動"},{e:"sit",j:"座る"},{e:"drink",j:"飲む"},{e:"afternoon",j:"午後"},{e:"fast",j:"速い"},{e:"science",j:"科学"},{e:"grandfather",j:"祖父"},{e:"speech",j:"スピーチ"},{e:"sing",j:"歌う"},{e:"doctor",j:"医者"},{e:"since",j:"～以来・～なので"},{e:"strong",j:"強い"},{e:"sea",j:"海"},{e:"between",j:"～の間に"},{e:"useful",j:"役に立つ"},{e:"cannot",j:"できない"},{e:"sad",j:"悲しい"},{e:"company",j:"会社・仲間"},{e:"Saturday",j:"土曜日"},{e:"true",j:"本当の"},{e:"hospital",j:"病院"},{e:"point",j:"点・指さす"},{e:"party",j:"パーティー"},{e:"cook",j:"料理する・料理人"},{e:"human",j:"人間"},{e:"agree",j:"同意する"},{e:"dinner",j:"夕食"},{e:"computer",j:"コンピュータ"},{e:"cold",j:"寒い・風邪"},{e:"table",j:"テーブル"},{e:"eye",j:"目"},{e:"win",j:"勝つ"},{e:"ten",j:"１０"},{e:"almost",j:"ほとんど"},{e:"TV",j:"テレビ"},{e:"build",j:"建てる"},{e:"fly",j:"飛ぶ・ハエ"},{e:"tennis",j:"テニス"},{e:"wear",j:"着ている"},{e:"building",j:"建物"},{e:"sell",j:"売る"},{e:"off",j:"離れて・切れて"},{e:"American",j:"アメリカの・アメリカ人"},{e:"junior high school",j:"中学校"},{e:"homework",j:"宿題"},{e:"blue",j:"青"},{e:"energy",j:"エネルギー"},{e:"program",j:"番組・計画"},{e:"grandmother",j:"祖母"},{e:"glad",j:"うれしい"},{e:"plan",j:"計画・計画する"},{e:"classmate",j:"同級生"},{e:"spend",j:"費やす・過ごす"},{e:"body",j:"体"},{e:"color",j:"色"},{e:"internet",j:"インターネット"},{e:"break",j:"壊す・休憩"},{e:"until",j:"～まで"},{e:"fish",j:"魚・釣りをする"},{e:"message",j:"伝言"},{e:"mom",j:"ママ"},{e:"reason",j:"理由"},{e:"fun",j:"楽しみ"},{e:"carry",j:"運ぶ"},{e:"ever",j:"今までに・かつて"}
+            ],
+            "初級":[
+               {e:"chance",j:"機会・偶然"},{e:"green",j:"緑"},{e:"traditional",j:"伝統的な"},{e:"sick",j:"病気の"},{e:"box",j:"箱"},{e:"store",j:"店・蓄える"},{e:"vacation",j:"休暇"},{e:"feeling",j:"感情・感覚"},{e:"warm",j:"暖かい"},{e:"white",j:"白"},{e:"close",j:"近い・閉める"},{e:"rain",j:"雨"},{e:"street",j:"通り"},{e:"draw",j:"描く・引く"},{e:"machine",j:"機械"},{e:"yen",j:"円"},{e:"end",j:"終わり・目的"},{e:"free",j:"自由な・無料の"},{e:"baby",j:"赤ちゃん"},{e:"newspaper",j:"新聞"},{e:"under",j:"～の下に"},{e:"door",j:"ドア"},{e:"forget",j:"忘れる"},{e:"present",j:"贈り物・現在の・出席している"},{e:"everything",j:"全てのもの"},{e:"face",j:"顔・直面する"},{e:"fall",j:"落ちる・秋"},{e:"cat",j:"猫"},{e:"already",j:"すでに"},{e:"finally",j:"ついに"},{e:"actually",j:"実際は"},{e:"stand",j:"立つ・我慢する"},{e:"village",j:"村"},{e:"graph",j:"グラフ"},{e:"save",j:"救う・節約する・保存する"},{e:"shopping",j:"買い物"},{e:"red",j:"赤"},{e:"winter",j:"冬"},{e:"phone",j:"電話"},{e:"excited",j:"興奮した"},{e:"once",j:"一度・かつて"},{e:"six",j:"６"},{e:"system",j:"システム・制度"},{e:"cry",j:"泣く・叫ぶ"},{e:"easily",j:"容易に"},{e:"news",j:"ニュース・知らせ"},{e:"afraid",j:"恐れて"},{e:"tired",j:"疲れた"},{e:"forest",j:"森"},{e:"math",j:"数学"},{e:"nature",j:"自然・性質"},{e:"catch",j:"捕まえる"},{e:"baseball",j:"野球"},{e:"swim",j:"泳ぐ"},{e:"busy",j:"忙しい"},{e:"clothes",j:"服"},{e:"sun",j:"太陽"},{e:"explain",j:"説明する"},{e:"power",j:"力・権力"},{e:"rule",j:"規則・支配する"},{e:"environment",j:"環境"},{e:"Canada",j:"カナダ"},{e:"nothing",j:"何も～ない"},{e:"star",j:"星・スター"},{e:"welcome",j:"歓迎する・ようこそ"},{e:"continue",j:"続ける"},{e:"late",j:"遅い・故～"},{e:"farmer",j:"農家"},{e:"quickly",j:"速く"},{e:"thirty",j:"３０"},{e:"pay",j:"払う"},{e:"weekend",j:"週末"},{e:"air",j:"空気・空中"},{e:"hot",j:"熱い・暑い"},{e:"bed",j:"ベッド"},{e:"dance",j:"踊る"},{e:"produce",j:"生産する"},{e:"area",j:"地域・面積"},{e:"short",j:"短い"},{e:"art",j:"芸術・美術"},{e:"arrive",j:"到着する"},{e:"university",j:"大学"},{e:"wow",j:"わあ"},{e:"fact",j:"事実"},{e:"angry",j:"怒った"},{e:"United States",j:"アメリカ合衆国"},{e:"black",j:"黒"},{e:"mind",j:"心・気にする"},{e:"ball",j:"ボール"},{e:"basketball",j:"バスケットボール"},{e:"office",j:"事務所・職場"},{e:"Mrs.",j:"～さん(既婚女性)"},{e:"contest",j:"コンテスト・競争"},{e:"e-mail",j:"Eメール"},{e:"vegetable",j:"野菜"},{e:"p.m.",j:"午後"},{e:"die",j:"死ぬ"},{e:"far",j:"遠い"},{e:"cake",j:"ケーキ"},{e:"pass",j:"通る・手渡す・合格する"},{e:"twenty",j:"２０"},{e:"share",j:"共有する・分ける"},{e:"rich",j:"金持ちの・豊かな"},{e:"alone",j:"一人で"},{e:"sign",j:"標識・署名する・合図"},{e:"third",j:"３番目の"},{e:"pet",j:"ペット"},{e:"ride",j:"乗る"},{e:"map",j:"地図"},{e:"though",j:"～だけれども"},{e:"lesson",j:"授業・レッスン"},{e:"meeting",j:"会議・会うこと"},{e:"poor",j:"貧しい・かわいそうな"},{e:"left",j:"左・去った"},{e:"maybe",j:"たぶん"},{e:"difference",j:"違い"},{e:"o'clock",j:"～時"},{e:"son",j:"息子"},{e:"return",j:"戻る・返す"},{e:"Africa",j:"アフリカ"},{e:"hundred",j:"１００"},{e:"yet",j:"まだ・しかし"},{e:"abroad",j:"海外へ"},{e:"classroom",j:"教室"},{e:"road",j:"道"},{e:"weather",j:"天気"},{e:"beach",j:"浜辺"},{e:"plane",j:"飛行機"},{e:"China",j:"中国"},{e:"exciting",j:"興奮させる"},{e:"cause",j:"原因・引き起こす"},{e:"rice",j:"米・ご飯"},{e:"half",j:"半分"},{e:"tour",j:"旅行・ツアー"},{e:"evening",j:"夕方"},{e:"host",j:"主催者・主人"},{e:"communication",j:"コミュニケーション・伝達"},{e:"farm",j:"農場"},{e:"goal",j:"目標・ゴール"},{e:"wrong",j:"間違った"},{e:"sky",j:"空"},{e:"moon",j:"月"},{e:"season",j:"季節"},{e:"test",j:"試験"},{e:"mistake",j:"間違い"},{e:"follow",j:"従う・ついて行く"},{e:"develop",j:"発達させる・開発する"},{e:"London",j:"ロンドン"},{e:"necessary",j:"必要な"},{e:"fine",j:"元気な・晴れた・素晴らしい"},{e:"less",j:"より少ない"},{e:"receive",j:"受け取る"},{e:"myself",j:"私自身"},{e:"order",j:"注文・命令・順序"},{e:"seven",j:"７"},{e:"lake",j:"湖"},{e:"lie",j:"嘘をつく・横たわる"},{e:"worker",j:"労働者"},{e:"concert",j:"コンサート"},{e:"outside",j:"外側"},{e:"hall",j:"会館・ホール・廊下"},{e:"spring",j:"春・泉・バネ"},{e:"card",j:"カード"},{e:"gift",j:"贈り物"},{e:"type",j:"型・タイプ・打つ"},{e:"born",j:"生まれた"},{e:"suddenly",j:"突然"},{e:"window",j:"窓"},{e:"fruit",j:"果物"},{e:"among",j:"～の間で(3つ以上)"},{e:"age",j:"年齢・時代"},{e:"shall",j:"～しましょうか"},{e:"health",j:"健康"},{e:"ground",j:"地面"},{e:"medicine",j:"薬"},{e:"piano",j:"ピアノ"},{e:"collect",j:"集める"},{e:"strange",j:"奇妙な・見知らぬ"},{e:"technology",j:"科学技術"},{e:"eight",j:"８"},{e:"seem",j:"～のように見える"},{e:"hit",j:"打つ・当たる"},{e:"side",j:"側・横"},{e:"New York",j:"ニューヨーク"},{e:"dictionary",j:"辞書"},{e:"seat",j:"座席"},{e:"garden",j:"庭"},{e:"dangerous",j:"危険な"},{e:"laugh",j:"笑う"},{e:"design",j:"デザイン・設計する"},{e:"dark",j:"暗い"},{e:"gold",j:"金"},{e:"stone",j:"石"},{e:"visitor",j:"訪問者"},{e:"writer",j:"作家"},{e:"head",j:"頭"},{e:"land",j:"土地・着陸する"},{e:"done",j:"した(doの過去分詞)"},{e:"brain",j:"脳"},{e:"else",j:"他に"},{e:"top",j:"頂上・トップ"},{e:"cooking",j:"料理"},{e:"kite",j:"凧"},{e:"fight",j:"戦う"},{e:"elephant",j:"象"},{e:"line",j:"線・列"},{e:"daughter",j:"娘"},{e:"local",j:"地元の"},{e:"shoe",j:"靴"},{e:"field",j:"野原・畑・分野"},{e:"piece",j:"一片・１つ"},{e:"Friday",j:"金曜日"},{e:"grandma",j:"おばあちゃん"},{e:"coffee",j:"コーヒー"},{e:"several",j:"いくつかの"},{e:"especially",j:"特に"},{e:"milk",j:"牛乳"},{e:"product",j:"製品"},{e:"zoo",j:"動物園"},{e:"uncle",j:"おじ"},{e:"century",j:"世紀"},{e:"floor",j:"床・階"},{e:"Chinese",j:"中国の・中国人・中国語"},{e:"check",j:"確認する・小切手"},{e:"natural",j:"自然の"},{e:"island",j:"島"},{e:"along",j:"～に沿って"},{e:"situation",j:"状況"},{e:"wall",j:"壁"},{e:"excuse",j:"許す・言い訳"},{e:"wife",j:"妻"},{e:"expensive",j:"高価な"},{e:"forward",j:"前へ・転送する"},{e:"himself",j:"彼自身"},{e:"government",j:"政府"},{e:"carefully",j:"注意深く"},{e:"notice",j:"気づく・通知"},{e:"wood",j:"木材・森"},{e:"tall",j:"背が高い"},{e:"garbage",j:"ゴミ"},{e:"possible",j:"可能な"},{e:"T-shirt",j:"Tシャツ"},{e:"paint",j:"絵の具・描く"},{e:"report",j:"報告する・レポート"},{e:"trouble",j:"トラブル・困難"},{e:"pick",j:"選ぶ・摘む"},{e:"breakfast",j:"朝食"},{e:"wind",j:"風"},{e:"business",j:"ビジネス・仕事"},{e:"Olympic",j:"オリンピック"},{e:"cool",j:"涼しい・かっこいい"},{e:"center",j:"中心"},{e:"hotel",j:"ホテル"},{e:"football",j:"フットボール・サッカー"},{e:"cut",j:"切る"},{e:"cup",j:"カップ"},{e:"meaning",j:"意味"},{e:"real",j:"本当の"},{e:"safe",j:"安全な・金庫"},{e:"research",j:"研究"},{e:"dish",j:"皿・料理"},{e:"imagine",j:"想像する"},{e:"inside",j:"内側"},{e:"low",j:"低い"},{e:"realize",j:"実現する・気づく"},{e:"Monday",j:"月曜日"},{e:"borrow",j:"借りる"},{e:"anyone",j:"誰でも"},{e:"create",j:"創造する"},{e:"careful",j:"注意深い"},{e:"owner",j:"所有者"},{e:"throw",j:"投げる"},{e:"calendar",j:"カレンダー"},{e:"gate",j:"門"},{e:"nurse",j:"看護師"},{e:"simple",j:"単純な・簡単な"},{e:"memory",j:"記憶・思い出"},{e:"tourist",j:"旅行者"},{e:"ticket",j:"チケット"},{e:"yourself",j:"あなた自身"},{e:"support",j:"支持する・支える"},{e:"project",j:"計画・プロジェクト"},{e:"Europe",j:"ヨーロッパ"},{e:"ice",j:"氷"},{e:"coin",j:"硬貨"},{e:"prepare",j:"準備する"},{e:"protect",j:"保護する"},{e:"horse",j:"馬"},{e:"May",j:"５月"},{e:"control",j:"支配する・管理する"},{e:"college",j:"大学"},{e:"aunt",j:"おば"},{e:"probably",j:"たぶん"},{e:"prize",j:"賞"},{e:"voice",j:"声"},{e:"nine",j:"９"},{e:"waste",j:"無駄にする・廃棄物"},{e:"thousand",j:"１０００"},{e:"July",j:"７月"},{e:"heart",j:"心臓・心"},{e:"million",j:"１００万"},{e:"electricity",j:"電気"},{e:"theater",j:"劇場"},{e:"snow",j:"雪"},{e:"amount",j:"量"},{e:"insect",j:"昆虫"},{e:"slowly",j:"ゆっくりと"},{e:"improve",j:"改善する・良くなる"},{e:"bottle",j:"ボトル"},{e:"full",j:"満ちた・いっぱい"},{e:"leg",j:"脚"},{e:"tooth",j:"歯"},{e:"heat",j:"熱・熱する"},{e:"instead",j:"代わりに"},{e:"themselves",j:"彼ら自身"},{e:"drive",j:"運転する・ドライブ"},{e:"elementary school",j:"小学校"},{e:"result",j:"結果"},{e:"marry",j:"結婚する"},{e:"opinion",j:"意見"},{e:"ready",j:"準備ができた"},{e:"healthy",j:"健康な"},{e:"desk",j:"机"},{e:"goodbye",j:"さようなら"},{e:"dad",j:"パパ"},{e:"hungry",j:"空腹の"},{e:"customer",j:"客"},{e:"leader",j:"リーダー・指導者"},{e:"smartphone",j:"スマートフォン"},{e:"might",j:"～かもしれない・力"},{e:"egg",j:"卵"},{e:"friendly",j:"友好的な・親しみやすい"},{e:"kid",j:"子供"},{e:"cherry",j:"サクランボ・桜"},{e:"cover",j:"覆う・表紙"},{e:"hamburger",j:"ハンバーガー"},{e:"behind",j:"～の後ろに"},{e:"wild",j:"野生の"},{e:"enter",j:"入る"},{e:"kill",j:"殺す"},{e:"guess",j:"推測する"},{e:"education",j:"教育"},{e:"orange",j:"オレンジ"},{e:"perfect",j:"完璧な"},{e:"climb",j:"登る"},{e:"reach",j:"到着する・届く"},{e:"race",j:"競走・人種"},{e:"social",j:"社会的な"},{e:"solve",j:"解決する"},{e:"across",j:"～を横切って"},{e:"clear",j:"晴れた・澄んだ・明らかな"},{e:"August",j:"８月"},{e:"percent",j:"パーセント"},{e:"temple",j:"寺"},{e:"cap",j:"帽子"},{e:"past",j:"過去・～を過ぎて"},{e:"temperature",j:"温度・体温"},{e:"advice",j:"助言"},{e:"nervous",j:"神経質な・緊張して"},{e:"skill",j:"技術"},{e:"common",j:"共通の・普通の"},{e:"ceremony",j:"式典"},{e:"delicious",j:"美味しい"},{e:"subject",j:"教科・主題"},{e:"exchange",j:"交換する"},{e:"sugar",j:"砂糖"},{e:"adult",j:"大人"},{e:"pen",j:"ペン"},{e:"notebook",j:"ノート"},{e:"wonder",j:"不思議に思う・驚き"},{e:"communicate",j:"意思疎通する"},{e:"foot",j:"足"},{e:"smell",j:"匂い・匂いがする"},{e:"Dr.",j:"博士・医者"},{e:"international",j:"国際的な"},{e:"A.M.",j:"午前"},{e:"against",j:"～に反対して・対抗して"},{e:"reduce",j:"減らす"},{e:"stadium",j:"競技場"},{e:"discover",j:"発見する"},{e:"miss",j:"逃す・恋しく思う"},{e:"size",j:"サイズ"},{e:"effect",j:"効果・影響"},{e:"cow",j:"牛"},{e:"April",j:"４月"},{e:"set",j:"置く・セットする"},{e:"stage",j:"舞台・段階"},{e:"service",j:"サービス"},{e:"satellite",j:"衛星"},{e:"hurt",j:"傷つける・痛む"},{e:"view",j:"眺め・見解"},{e:"touch",j:"触る・感動させる"},{e:"introduce",j:"紹介する"},{e:"ring",j:"指輪・鳴る"},{e:"police",j:"警察"},{e:"national",j:"国の・国立の"},{e:"salt",j:"塩"},{e:"invite",j:"招待する"},{e:"plastic",j:"プラスチック"},{e:"lucky",j:"幸運な"},{e:"dry",j:"乾いた"},{e:"jump",j:"跳ぶ"},{e:"cell",j:"細胞・電池"},{e:"March",j:"３月"},{e:"ski",j:"スキー"},{e:"sentence",j:"文"},{e:"print",j:"印刷する"},{e:"ocean",j:"大洋"},{e:"dollar",j:"ドル"},{e:"increase",j:"増える・増やす"},{e:"exercise",j:"運動・練習"},{e:"captain",j:"キャプテン・船長"},{e:"volleyball",j:"バレーボール"},{e:"meat",j:"肉"},{e:"prince",j:"王子"},{e:"distance",j:"距離"},{e:"bridge",j:"橋"},{e:"England",j:"イングランド"},{e:"lead",j:"導く"},{e:"moment",j:"瞬間"},{e:"hair",j:"髪・毛"},{e:"banana",j:"バナナ"},{e:"deep",j:"深い"},{e:"king",j:"王"},{e:"war",j:"戦争"},{e:"meal",j:"食事"},{e:"husband",j:"夫"},{e:"June",j:"６月"},{e:"taste",j:"味・味がする"},{e:"solar",j:"太陽の"},{e:"wash",j:"洗う"},{e:"photo",j:"写真"},{e:"Wednesday",j:"水曜日"},{e:"relax",j:"くつろぐ"},{e:"guide",j:"案内する・ガイド"},{e:"camp",j:"キャンプ"},{e:"fire",j:"火・火事"},{e:"serious",j:"真剣な・深刻な"},{e:"India",j:"インド"},{e:"community",j:"地域社会・共同体"},{e:"fifteen",j:"１５"},{e:"period",j:"期間・授業時間"},{e:"rock",j:"岩・ロック"},{e:"France",j:"フランス"},{e:"blood",j:"血"},{e:"Christmas",j:"クリスマス"},{e:"kilometer",j:"キロメートル"},{e:"allow",j:"許す"},{e:"beginning",j:"始まり"},{e:"fresh",j:"新鮮な"}
+            ],
+            "中級":[
+                {e:"marathon",j:"マラソン"},{e:"Tuesday",j:"火曜日"},{e:"symbol",j:"象徴・記号"},{e:"apple",j:"りんご"},{e:"global",j:"地球全体の・世界的な"},{e:"fishing",j:"釣り"},{e:"October",j:"１０月"},{e:"yellow",j:"黄色"},{e:"researcher",j:"研究者"},{e:"main",j:"主な"},{e:"public",j:"公の・一般の"},{e:"article",j:"記事・条項"},{e:"pull",j:"引く"},{e:"shape",j:"形"},{e:"straight",j:"まっすぐな"},{e:"ship",j:"船"},{e:"fifty",j:"５０"},{e:"September",j:"９月"},{e:"damage",j:"損害・損害を与える"},{e:"planet",j:"惑星"},{e:"professional",j:"プロの"},{e:"elderly",j:"年配の"},{e:"cookie",j:"クッキー"},{e:"sweet",j:"甘い"},{e:"rose",j:"バラ"},{e:"chair",j:"椅子"},{e:"disappear",j:"消える"},{e:"mine",j:"私のもの・鉱山"},{e:"cute",j:"かわいい"},{e:"factory",j:"工場"},{e:"proud",j:"誇りに思う"},{e:"bicycle",j:"自転車"},{e:"Thursday",j:"木曜日"},{e:"dear",j:"親愛なる"},{e:"cost",j:"費用・（費用が）かかる"},{e:"level",j:"水準・平らな"},{e:"juice",j:"ジュース"},{e:"cheap",j:"安い"},{e:"coat",j:"コート"},{e:"sunny",j:"晴れた"},{e:"arm",j:"腕"},{e:"video",j:"ビデオ"},{e:"flight",j:"飛行・便"},{e:"corner",j:"角"},{e:"appear",j:"現れる"},{e:"add",j:"加える"},{e:"note",j:"メモ・音符・注意する"},{e:"clock",j:"時計"},{e:"conversation",j:"会話"},{e:"bread",j:"パン"},{e:"encourage",j:"勇気づける"},{e:"law",j:"法律"},{e:"heavy",j:"重い"},{e:"tool",j:"道具"},{e:"teammate",j:"チームメイト"},{e:"rest",j:"休息・残り"},{e:"ancient",j:"古代の"},{e:"promise",j:"約束・約束する"},{e:"castle",j:"城"},{e:"treasure",j:"宝物"},{e:"astronaut",j:"宇宙飛行士"},{e:"step",j:"歩み・階段"},{e:"code",j:"コード・暗号・規則"},{e:"toward",j:"～の方へ"},{e:"drop",j:"落ちる・落とす"},{e:"leaf",j:"葉"},{e:"clerk",j:"店員・事務員"},{e:"guitar",j:"ギター"},{e:"knowledge",j:"知識"},{e:"radio",j:"ラジオ"},{e:"perhaps",j:"たぶん"},{e:"living",j:"生きている・生活"},{e:"quiet",j:"静かな"},{e:"express",j:"表現する・急行"},{e:"dinosaur",j:"恐竜"},{e:"airport",j:"空港"},{e:"case",j:"場合・箱"},{e:"whole",j:"全体の"},{e:"bookstore",j:"本屋"},{e:"impress",j:"感動させる"},{e:"toy",j:"おもちゃ"},{e:"although",j:"～だけれども"},{e:"experiment",j:"実験"},{e:"effort",j:"努力"},{e:"movement",j:"動き・運動"},{e:"choice",j:"選択"},{e:"supermarket",j:"スーパーマーケット"},{e:"mouth",j:"口"},{e:"nobody",j:"誰も～ない"},{e:"society",j:"社会"},{e:"meter",j:"メーター・メートル"},{e:"either",j:"どちらか・～もまた（ない）"},{e:"boat",j:"ボート"},{e:"staff",j:"職員"},{e:"sense",j:"感覚・意味"},{e:"recycle",j:"リサイクルする"},{e:"shout",j:"叫ぶ"},{e:"various",j:"さまざまな"},{e:"interest",j:"興味・利益"},{e:"drum",j:"ドラム"},{e:"soldier",j:"兵士"},{e:"slow",j:"遅い"},{e:"influence",j:"影響"},{e:"website",j:"ウェブサイト"},{e:"tomato",j:"トマト"},{e:"traffic",j:"交通"},{e:"steal",j:"盗む"},{e:"luck",j:"運"},{e:"deer",j:"鹿"},{e:"CD",j:"CD"},{e:"god",j:"神"},{e:"eleven",j:"１１"},{e:"aurora",j:"オーロラ"},{e:"fill",j:"満たす"},{e:"band",j:"バンド・帯"},{e:"painting",j:"絵・描くこと"},{e:"bank",j:"銀行・土手"},{e:"stick",j:"棒・突き刺す・貼る"},{e:"hat",j:"帽子"},{e:"quite",j:"とても・完全に"},{e:"death",j:"死"},{e:"presentation",j:"発表"},{e:"page",j:"ページ"},{e:"market",j:"市場"},{e:"active",j:"活動的な"},{e:"date",j:"日付・デート"},{e:"glass",j:"ガラス・コップ"},{e:"February",j:"２月"},{e:"New Zealand",j:"ニュージーランド"},{e:"middle",j:"真ん中の"},{e:"average",j:"平均・平均の"},{e:"ability",j:"能力"},{e:"similar",j:"似ている"},{e:"action",j:"行動"},{e:"smart",j:"頭の良い・洗練された"},{e:"above",j:"～の上に"},{e:"matter",j:"問題・事柄・重要である"},{e:"twelve",j:"１２"},{e:"umbrella",j:"傘"},{e:"lady",j:"女性・淑女"},{e:"friendship",j:"友情"},{e:"desert",j:"砂漠"},{e:"disease",j:"病気"},{e:"bear",j:"熊・耐える・産む"},{e:"complete",j:"完全な・完成させる"},{e:"doll",j:"人形"},{e:"tournament",j:"トーナメント"},{e:"hurry",j:"急ぐ"},{e:"herself",j:"彼女自身"},{e:"accident",j:"事故"},{e:"artist",j:"芸術家"},{e:"wish",j:"願う"},{e:"gym",j:"体育館"},{e:"schedule",j:"予定"},{e:"coach",j:"コーチ"},{e:"gas",j:"ガス・ガソリン"},{e:"date",j:"日付・デート"},{e:"north",j:"北"},{e:"chorus",j:"合唱"},{e:"puppy",j:"子犬"},{e:"terrible",j:"ひどい・恐ろしい"},{e:"fear",j:"恐れ"},{e:"raise",j:"上げる・育てる"},{e:"record",j:"記録・録音する"},{e:"wake",j:"目が覚める"},{e:"position",j:"位置・立場"},{e:"clearly",j:"明らかに"},{e:"twice",j:"２回"},{e:"December",j:"１２月"},{e:"list",j:"リスト"},{e:"pollution",j:"汚染"},{e:"site",j:"場所・用地"},{e:"usual",j:"いつもの"},{e:"yours",j:"あなたのもの"},{e:"camera",j:"カメラ"},{e:"least",j:"最も少ない"},{e:"dead",j:"死んでいる"},{e:"bath",j:"風呂"},{e:"shy",j:"恥ずかしがりの"},{e:"January",j:"１月"},{e:"repair",j:"修理する"},{e:"roll",j:"巻く・転がる"},{e:"British",j:"イギリスの"},{e:"serve",j:"仕える・出す"},{e:"someday",j:"いつの日か"},{e:"everyday",j:"毎日の"},{e:"respect",j:"尊敬・点"},{e:"south",j:"南"},{e:"forty",j:"４０"},{e:"textbook",j:"教科書"},{e:"comic",j:"漫画"},{e:"act",j:"行動する・演じる"},{e:"fun",j:"楽しみ"},{e:"tonight",j:"今夜"},{e:"holiday",j:"休日"},{e:"chocolate",j:"チョコレート"},{e:"post office",j:"郵便局"},{e:"form",j:"形・用紙・形成する"},{e:"teenager",j:"１０代の若者"},{e:"bee",j:"蜂"},{e:"turtle",j:"カメ"},{e:"push",j:"押す"},{e:"shock",j:"ショック・衝撃"},{e:"bright",j:"明るい"},{e:"connect",j:"つなぐ"},{e:"invent",j:"発明する"},{e:"noise",j:"騒音"},{e:"training",j:"訓練"},{e:"object",j:"物体・対象・反対する"},{e:"chart",j:"図・表"},{e:"funny",j:"おかしい"},{e:"billion",j:"１０億"},{e:"modern",j:"現代の"},{e:"speaker",j:"話し手・スピーカー"},{e:"weak",j:"弱い"},{e:"fourth",j:"４番目の"},{e:"fourth",j:"４番目の"},{e:"Asia",j:"アジア"},{e:"grade",j:"学年・成績・等級"},{e:"certain",j:"確信して・ある～"},{e:"patient",j:"患者・忍耐強い"},{e:"ink",j:"インク"},{e:"gather",j:"集まる・集める"},{e:"hole",j:"穴"},{e:"truth",j:"真実"},{e:"wrap",j:"包む"},{e:"relationship",j:"関係"},{e:"rainy",j:"雨の"},{e:"firework",j:"花火"},{e:"percentage",j:"パーセント・割合"},{e:"amazing",j:"驚くべき"},{e:"ear",j:"耳"},{e:"impossible",j:"不可能な"},{e:"round",j:"丸い"},{e:"wave",j:"波・振る"},{e:"peace",j:"平和"},{e:"shirt",j:"シャツ"},{e:"accept",j:"受け入れる"},{e:"condition",j:"条件・状態"},{e:"dress",j:"ドレス・服を着る"},{e:"expect",j:"予期する・期待する"},{e:"following",j:"次の・～に続いて"},{e:"November",j:"１１月"},{e:"decision",j:"決心・決定"},{e:"runner",j:"走者"},{e:"ant",j:"アリ"},{e:"purpose",j:"目的"},{e:"fat",j:"太った・脂肪"},{e:"figure",j:"数字・姿・人物"},{e:"cancer",j:"癌"},{e:"preserve",j:"保存する"},{e:"pocket",j:"ポケット"},{e:"engineer",j:"技師"},{e:"importance",j:"重要性"},{e:"interview",j:"面接・インタビュー"},{e:"intelligence",j:"知能"},{e:"lamp",j:"ランプ"},{e:"task",j:"仕事・課題"},{e:"pencil",j:"鉛筆"},{e:"blind",j:"目の不自由な"},{e:"spread",j:"広がる・広げる"},{e:"generation",j:"世代"},{e:"pot",j:"つぼ・鍋"},{e:"pump",j:"ポンプ"},{e:"cheer",j:"応援する"},{e:"metal",j:"金属"},{e:"driver",j:"運転手"},{e:"hide",j:"隠す・隠れる"},{e:"department store",j:"デパート"},{e:"telephone",j:"電話"},{e:"uniform",j:"制服"},{e:"lion",j:"ライオン"},{e:"stamp",j:"切手"},{e:"convenient",j:"便利な"},{e:"pretty",j:"かわいい・かなり"},{e:"daily",j:"毎日の"},{e:"depend",j:"頼る・～次第である"},{e:"magazine",j:"雑誌"},{e:"state",j:"状態・州・述べる"},{e:"thought",j:"考え・thinkの過去形"},{e:"church",j:"教会"},{e:"whose",j:"誰の"},{e:"helpful",j:"役に立つ"},{e:"style",j:"スタイル・様式"},{e:"athlete",j:"運動選手"},{e:"performance",j:"演技・演奏・遂行"},{e:"secret",j:"秘密"},{e:"silver",j:"銀"},{e:"Brazil",j:"ブラジル"},{e:"mobile phone",j:"携帯電話"},{e:"selfish",j:"わがままな"},{e:"lily",j:"ユリ"},{e:"taxi",j:"タクシー"},{e:"bowl",j:"ボウル・どんぶり"},{e:"French",j:"フランスの・フランス人・フランス語"},{e:"skin",j:"肌・皮"},{e:"wing",j:"翼"},{e:"invention",j:"発明"},{e:"cross",j:"十字架・横切る"},{e:"whether",j:"～かどうか"},{e:"Mars",j:"火星"},{e:"stress",j:"ストレス・強調する"},{e:"east",j:"東"},{e:"boring",j:"退屈な"},{e:"everybody",j:"誰もが"},{e:"role",j:"役割"},{e:"pizza",j:"ピザ"},{e:"homestay",j:"ホームステイ"},{e:"kitchen",j:"台所"},{e:"recently",j:"最近"},{e:"wedding",j:"結婚式"},{e:"safety",j:"安全"},{e:"sightseeing",j:"観光"},{e:"sandwich",j:"サンドイッチ"},{e:"tear",j:"涙・裂く"},{e:"nose",j:"鼻"},{e:"key",j:"鍵"},{e:"bell",j:"ベル"},{e:"custom",j:"習慣"},{e:"Hawaii",j:"ハワイ"},{e:"offer",j:"申し出る・提供する"},{e:"rise",j:"上がる"},{e:"atmosphere",j:"雰囲気・大気"},{e:"chemical",j:"化学の"},{e:"cloud",j:"雲"},{e:"western",j:"西の"},{e:"attention",j:"注意"},{e:"earthquake",j:"地震"},{e:"graduate",j:"卒業する"},{e:"process",j:"過程"},{e:"sleepy",j:"眠い"},{e:"survive",j:"生き残る"},{e:"shoot",j:"撃つ・撮影する"},{e:"speed",j:"スピード"},{e:"bone",j:"骨"},{e:"Britain",j:"英国"},{e:"seed",j:"種"},{e:"singer",j:"歌手"},{e:"Sydney",j:"シドニー"},{e:"expression",j:"表現"},{e:"quietly",j:"静かに"},{e:"search",j:"探す"},{e:"shake",j:"振る・震える"},{e:"California",j:"カリフォルニア"},{e:"character",j:"性格・登場人物・文字"},{e:"destroy",j:"破壊する"},{e:"material",j:"材料"},{e:"means",j:"手段・意味する(s付き)"},{e:"rate",j:"割合・速度"},{e:"mark",j:"印・点数"},{e:"release",j:"解放する・発表する"},{e:"shrine",j:"神社"},{e:"tradition",j:"伝統"},{e:"burn",j:"燃える"},{e:"magic",j:"魔法"},{e:"queen",j:"女王"},{e:"sheet",j:"シーツ・１枚"},{e:"hunter",j:"狩人"},{e:"dirty",j:"汚い"},{e:"happiness",j:"幸福"},{e:"joy",j:"喜び"},{e:"guest",j:"客"},{e:"officer",j:"役人・警官"},{e:"bean",j:"豆"},{e:"enemy",j:"敵"},{e:"user",j:"使用者"},{e:"import",j:"輸入する"},{e:"sheep",j:"羊"},{e:"council",j:"会議・議会"},{e:"per",j:"～につき"},{e:"soup",j:"スープ"},{e:"surface",j:"表面"},{e:"west",j:"西"},{e:"correct",j:"正しい・訂正する"},{e:"Korea",j:"韓国・朝鮮"},{e:"normal",j:"普通の"},{e:"toilet",j:"トイレ"},{e:"artificial",j:"人工的な"},{e:"expert",j:"専門家"},{e:"vending machine",j:"自動販売機"},{e:"entrance",j:"入口"},{e:"actor",j:"俳優"},{e:"earn",j:"稼ぐ"},{e:"wide",j:"広い"},{e:"successful",j:"成功した"},{e:"thin",j:"薄い・痩せた"},{e:"topic",j:"話題"},{e:"unique",j:"独特な"},{e:"convenience store",j:"コンビニ"},{e:"reply",j:"返事をする"},{e:"koala",j:"コアラ"},{e:"poster",j:"ポスター"},{e:"penguin",j:"ペンギン"},{e:"railway",j:"鉄道"},{e:"ballet",j:"バレエ"},{e:"anyway",j:"とにかく"},{e:"neighbor",j:"隣人"},{e:"pain",j:"痛み"},{e:"understanding",j:"理解"},{e:"count",j:"数える"},{e:"feed",j:"食べ物を与える"},{e:"musician",j:"音楽家"},{e:"breath",j:"息"},{e:"circle",j:"円・サークル"},{e:"president",j:"大統領・社長"},{e:"cloudy",j:"曇った"},{e:"popcorn",j:"ポップコーン"},{e:"Germany",j:"ドイツ"},{e:"potato",j:"ジャガイモ"},{e:"addition",j:"追加"},{e:"address",j:"住所・演説"},{e:"hate",j:"憎む"},{e:"pressure",j:"圧力"},{e:"scare",j:"怖がらせる"},{e:"challenge",j:"挑戦"},{e:"soft",j:"柔らかい"},{e:"survey",j:"調査"},{e:"huge",j:"巨大な"},{e:"lifestyle",j:"生活様式"},{e:"ordinary",j:"普通の"},{e:"perform",j:"演じる・行う"},{e:"wallet",j:"財布"},{e:"beef",j:"牛肉"},{e:"fossil",j:"化石"},{e:"wise",j:"賢い"},{e:"blossom",j:"花"},{e:"rugby",j:"ラグビー"},{e:"rope",j:"ロープ"},{e:"heritage",j:"遺産"},{e:"leaflet",j:"チラシ"},{e:"clever",j:"利口な"},{e:"grass",j:"草"},{e:"seventy",j:"７０"},{e:"shine",j:"輝く"},{e:"surprise",j:"驚き・驚かせる"},{e:"device",j:"装置"},{e:"fry",j:"揚げる"},{e:"anger",j:"怒り"},{e:"completely",j:"完全に"},{e:"passenger",j:"乗客"},{e:"competition",j:"競争"},{e:"mouse",j:"ネズミ"},{e:"loud",j:"大声の・うるさい"},{e:"attack",j:"攻撃する"},{e:"airplane",j:"飛行機"},{e:"exactly",j:"正確に"},{e:"theory",j:"理論"},{e:"bottom",j:"底"},{e:"suffer",j:"苦しむ"},{e:"bacteria",j:"バクテリア"}
+            ],
+            "上級":[
+               {e:"professor",j:"教授"},{e:"tunnel",j:"トンネル"},{e:"swallow",j:"飲み込む・ツバメ"},{e:"empty",j:"空の"},{e:"fix",j:"修理する・固定する"},{e:"worse",j:"より悪い"},{e:"affect",j:"影響する"},{e:"comfortable",j:"心地よい"},{e:"phrase",j:"フレーズ・言葉遣い"},{e:"discovery",j:"発見"},{e:"advertisement",j:"広告"},{e:"focus",j:"焦点・集中させる"},{e:"master",j:"主人・習得する"},{e:"elevator",j:"エレベーター"},{e:"pop",j:"ポンと鳴る・飛び出る・大衆的な"},{e:"trick",j:"トリック・いたずら"},{e:"plain",j:"明白な・質素な・平原"},{e:"shell",j:"貝殻"},{e:"tower",j:"塔"},{e:"oil",j:"油"},{e:"asleep",j:"眠って"},{e:"silent",j:"静かな"},{e:"calm",j:"穏やかな"},{e:"behavior",j:"振る舞い"},{e:"source",j:"源・情報源"},{e:"passage",j:"通路・一節"},{e:"fisherman",j:"漁師"},{e:"necklace",j:"ネックレス"},{e:"powder",j:"粉"},{e:"Berlin",j:"ベルリン"},{e:"somewhere",j:"どこかに"},{e:"surprising",j:"驚くべき"},{e:"crop",j:"作物"},{e:"powerful",j:"強力な"},{e:"regular",j:"規則正しい・通常の"},{e:"African",j:"アフリカの"},{e:"hill",j:"丘"},{e:"anymore",j:"もはや（～ない）"},{e:"balance",j:"バランス"},{e:"success",j:"成功"},{e:"snake",j:"ヘビ"},{e:"Antarctica",j:"南極"},{e:"slate",j:"スレート・石版・候補者名簿"},{e:"vote",j:"投票する"},{e:"bride",j:"花嫁"},{e:"wheelchair",j:"車椅子"},{e:"cousin",j:"いとこ"},{e:"disappointed",j:"がっかりした"},{e:"pair",j:"一対"},{e:"pink",j:"ピンク"},{e:"square",j:"正方形・広場"},{e:"development",j:"発展・開発"},{e:"gesture",j:"身振り"},{e:"partner",j:"パートナー"},{e:"personal",j:"個人の"},{e:"Singapore",j:"シンガポール"},{e:"pond",j:"池"},{e:"sail",j:"航海する・帆"},{e:"zone",j:"地帯"},{e:"logic",j:"論理"},{e:"injure",j:"傷つける"},{e:"sixty",j:"６０"},{e:"below",j:"～の下に"},{e:"finger",j:"指"},{e:"noon",j:"正午"},{e:"electric",j:"電気の"},{e:"everywhere",j:"どこでも"},{e:"relate",j:"関連づける"},{e:"wet",j:"濡れた"},{e:"disaster",j:"災害"},{e:"original",j:"元の・独創的な"},{e:"panda",j:"パンダ"},{e:"rabbit",j:"ウサギ"},{e:"racket",j:"ラケット・騒音"},{e:"score",j:"得点"},{e:"apply",j:"申し込む・適用する"},{e:"manner",j:"マナー・方法"},{e:"pool",j:"プール"},{e:"cage",j:"かご・檻"},{e:"creative",j:"創造的な"},{e:"sale",j:"販売・特売"},{e:"trash",j:"ゴミ"},{e:"therapy",j:"療法"},{e:"author",j:"著者"},{e:"happily",j:"幸せに"},{e:"direction",j:"方向・指示"},{e:"sand",j:"砂"},{e:"total",j:"合計の・完全な"},{e:"brown",j:"茶色"},{e:"courage",j:"勇気"},{e:"drama",j:"ドラマ・演劇"},{e:"housework",j:"家事"},{e:"mix",j:"混ぜる"},{e:"trust",j:"信頼する"},{e:"bite",j:"噛む"},{e:"economy",j:"経済"},{e:"medical",j:"医学の"},{e:"polite",j:"礼儀正しい"},{e:"curry",j:"カレー"},{e:"female",j:"女性の・メス"},{e:"interviewer",j:"面接官"},{e:"fuel",j:"燃料"},{e:"cave",j:"洞窟"},{e:"gun",j:"銃"},{e:"shark",j:"サメ"},{e:"originally",j:"元来は"},{e:"forever",j:"永遠に"},{e:"track",j:"トラック・跡"},{e:"mile",j:"マイル"},{e:"thick",j:"厚い"},{e:"homeroom",j:"ホームルーム"},{e:"United Kingdom",j:"イギリス(連合王国)"},{e:"value",j:"価値"},{e:"charity",j:"慈善"},{e:"rescue",j:"救助する"},{e:"stranger",j:"見知らぬ人"},{e:"gray",j:"灰色"},{e:"quarter",j:"４分の１"},{e:"scissors",j:"はさみ"},{e:"crow",j:"カラス"},{e:"comma",j:"コンマ"},{e:"trade",j:"貿易"},{e:"weight",j:"重さ"},{e:"celebrate",j:"祝う"},{e:"deliver",j:"配達する"},{e:"Paris",j:"パリ"},{e:"suggest",j:"提案する"},{e:"big",j:"大きい"},{e:"shift",j:"移る・交替"},{e:"storm",j:"嵐"},{e:"prefecture",j:"県"},{e:"tail",j:"尻尾"},{e:"couple",j:"カップル・一対"},{e:"cicada",j:"セミ"},{e:"fifth",j:"５番目の"},{e:"spot",j:"場所・斑点"},{e:"base",j:"土台・基地"},{e:"habit",j:"習慣"},{e:"central",j:"中心の"},{e:"comment",j:"コメント"},{e:"intelligent",j:"知的な"},{e:"knife",j:"ナイフ"},{e:"Miss",j:"～さん(未婚女性)・失敗する"},{e:"remain",j:"残る"},{e:"Roman",j:"ローマの"},{e:"chain",j:"鎖・チェーン店"},{e:"dolphin",j:"イルカ"},{e:"private",j:"私的な"},{e:"album",j:"アルバム"},{e:"dancer",j:"ダンサー"},{e:"ghost",j:"幽霊"},{e:"merchant",j:"商人"},{e:"Venus",j:"金星・ビーナス"},{e:"kitten",j:"子猫"},{e:"rain forest",j:"熱帯雨林"},{e:"yeah",j:"うん・イェーイ"},{e:"Spanish",j:"スペインの・スペイン語"},{e:"crowded",j:"混雑した"},{e:"beat",j:"打つ・打ち負かす"},{e:"belong",j:"所属する"},{e:"certainly",j:"確かに"},{e:"bit",j:"少し"},{e:"compare",j:"比較する"},{e:"board",j:"板・搭乗する・委員会"},{e:"Italy",j:"イタリア"},{e:"nest",j:"巣"},{e:"positive",j:"前向きな・肯定的な"},{e:"postcard",j:"絵葉書"},{e:"spirit",j:"精神・魂"},{e:"separate",j:"分ける・別々の"},{e:"succeed",j:"成功する"},{e:"cure",j:"治療する"},{e:"image",j:"画像・イメージ"},{e:"novel",j:"小説・斬新な"},{e:"sight",j:"視力・光景"},{e:"danger",j:"危険"},{e:"loss",j:"損失・敗北"},{e:"slave",j:"奴隷"},{e:"theme",j:"テーマ"},{e:"risk",j:"リスク"},{e:"camel",j:"ラクダ"},{e:"anywhere",j:"どこでも"},{e:"attract",j:"引きつける"},{e:"brush",j:"ブラシ・磨く"},{e:"repeat",j:"繰り返す"},{e:"engine",j:"エンジン"},{e:"cloth",j:"布"},{e:"sunlight",j:"日光"},{e:"mystery",j:"神秘・謎"},{e:"nut",j:"木の実"},{e:"bulb",j:"電球・球根"},{e:"principal",j:"校長・主要な"},{e:"calculate",j:"計算する"},{e:"colony",j:"植民地"},{e:"menu",j:"メニュー"},{e:"lift",j:"持ち上げる・エレベーター"},{e:"Asian",j:"アジアの"},{e:"Australian",j:"オーストラリアの"},{e:"cultural",j:"文化的な"},{e:"directly",j:"直接に"},{e:"neck",j:"首"},{e:"block",j:"ブロック・妨げる"},{e:"golden",j:"金色の"},{e:"hometown",j:"故郷"},{e:"beauty",j:"美しさ"},{e:"collection",j:"収集"},{e:"hunt",j:"狩る"},{e:"limit",j:"制限・限界"},{e:"nearly",j:"ほとんど"},{e:"pack",j:"包む・パック"},{e:"agriculture",j:"農業"},{e:"diary",j:"日記"},{e:"impact",j:"衝撃・影響"},{e:"media",j:"メディア"},{e:"painter",j:"画家"},{e:"panel",j:"パネル"},{e:"web",j:"ウェブ・クモの巣"},{e:"assistance",j:"援助"},{e:"onto",j:"～の上へ"},{e:"therefore",j:"それゆえに"},{e:"slide",j:"スライド・滑る"},{e:"text",j:"本文・テキスト"},{e:"film",j:"映画・フィルム"},{e:"Finland",j:"フィンランド"},{e:"major",j:"主要な"},{e:"cafeteria",j:"カフェテリア"},{e:"satisfy",j:"満足させる"},{e:"climate",j:"気候"},{e:"kick",j:"蹴る"},{e:"shoulder",j:"肩"},{e:"towel",j:"タオル"},{e:"alive",j:"生きている"},{e:"basic",j:"基本的な"},{e:"extra",j:"追加の・余分の"},{e:"foreigner",j:"外国人"},{e:"avoid",j:"避ける"},{e:"European",j:"ヨーロッパの"},{e:"unhappy",j:"不幸な"},{e:"breathe",j:"呼吸する"},{e:"physical",j:"身体の・物理的な"},{e:"sixteen",j:"１６"},{e:"traveler",j:"旅行者"},{e:"violin",j:"バイオリン"},{e:"yard",j:"庭・ヤード"},{e:"connection",j:"つながり"},{e:"exam",j:"試験"},{e:"fortune",j:"運・財産"},{e:"monkey",j:"サル"},{e:"male",j:"男性の・オス"},{e:"online",j:"オンラインの"},{e:"safely",j:"安全に"},{e:"safely",j:"安全に"},{e:"campaign",j:"キャンペーン"},{e:"region",j:"地域"},{e:"exhibition",j:"展示"},{e:"force",j:"力・強制する"},{e:"sticky",j:"べたつく"},{e:"grandparent",j:"祖父母"},{e:"cream",j:"クリーム"},{e:"knock",j:"ノックする"},{e:"wooden",j:"木製の"},{e:"plate",j:"皿"},{e:"thirteen",j:"１３"},{e:"winner",j:"勝者"},{e:"explanation",j:"説明"},{e:"hero",j:"英雄"},{e:"environmental",j:"環境の"},{e:"escape",j:"逃げる"},{e:"tiny",j:"とても小さい"},{e:"benefit",j:"利益・恩恵"},{e:"fail",j:"失敗する"},{e:"pilot",j:"パイロット"},{e:"rather",j:"かなり・むしろ"},{e:"route",j:"ルート・道"},{e:"sensor",j:"センサー"},{e:"bakery",j:"パン屋"},{e:"operation",j:"手術・操作"},{e:"craft",j:"工芸・船"},{e:"dust",j:"ほこり"},{e:"pie",j:"パイ"},{e:"term",j:"期間・用語"},{e:"wine",j:"ワイン"},{e:"volcano",j:"火山"},{e:"bubble",j:"泡"},{e:"printer",j:"プリンター"},{e:"beside",j:"～のそばに"},{e:"birth",j:"誕生"},{e:"degree",j:"学位・程度・度"},{e:"lay",j:"横たえる・置く"},{e:"lend",j:"貸す"},{e:"official",j:"公式の"},{e:"approach",j:"近づく・取り組み"},{e:"float",j:"浮く"},{e:"include",j:"含む"},{e:"photograph",j:"写真"},{e:"branch",j:"枝・支店"},{e:"branch",j:"枝・支店"},{e:"discussion",j:"議論"},{e:"waiter",j:"ウェイター"},{e:"handmade",j:"手作りの"},{e:"shelter",j:"避難所"},{e:"signal",j:"信号・合図"},{e:"trumpet",j:"トランペット"},{e:"drill",j:"ドリル・訓練"},{e:"hurricane",j:"ハリケーン"},{e:"brave",j:"勇敢な"},{e:"deeply",j:"深く"},{e:"fourteen",j:"１４"},{e:"remove",j:"取り除く"},{e:"blow",j:"吹く"},{e:"apartment",j:"アパート"},{e:"audience",j:"聴衆"},{e:"corn",j:"トウモロコシ"},{e:"ourselves",j:"私たち自身"},{e:"recent",j:"最近の"},{e:"worst",j:"最悪の"},{e:"Dutch",j:"オランダの"},{e:"grain",j:"穀物"},{e:"lemon",j:"レモン"},{e:"refuse",j:"拒否する・ゴミ"},{e:"arrange",j:"手配する・整える"},{e:"cafe",j:"カフェ"},{e:"fence",j:"柵"},{e:"greenhouse",j:"温室"},{e:"organization",j:"組織"},{e:"inch",j:"インチ"},{e:"none",j:"誰も～ない"},{e:"purse",j:"財布"},{e:"fee",j:"料金"},{e:"horn",j:"角・警笛"},{e:"exploration",j:"探検"},{e:"refugee",j:"難民"},{e:"colorful",j:"カラフルな"},{e:"bar",j:"棒・酒場"},{e:"disagree",j:"同意しない"},{e:"Italian",j:"イタリアの・イタリア人"},{e:"roof",j:"屋根"},{e:"German",j:"ドイツの・ドイツ人"},{e:"title",j:"タイトル"},{e:"chef",j:"シェフ"},{e:"equal",j:"平等な・等しい"},{e:"honest",j:"正直な"},{e:"impression",j:"印象"},{e:"population",j:"人口"},{e:"reporter",j:"記者"},{e:"salad",j:"サラダ"},{e:"single",j:"独身の・たった１つの"},{e:"bend",j:"曲げる"},{e:"emergency",j:"緊急事態"},{e:"likely",j:"ありそうな"},{e:"reuse",j:"再利用する"},{e:"shelf",j:"棚"},{e:"string",j:"ひも"},{e:"tube",j:"管・チューブ"},{e:"award",j:"賞"},{e:"globe",j:"地球・球体"},{e:"tray",j:"お盆"},{e:"aquarium",j:"水族館"},{e:"calligraphy",j:"書道"},{e:"laughter",j:"笑い"},{e:"unit",j:"単位"},{e:"clay",j:"粘土"},{e:"mascot",j:"マスコット"},{e:"riddle",j:"なぞなぞ"},{e:"input",j:"入力"},{e:"wizard",j:"魔法使い"},{e:"manager",j:"経営者・マネージャー"},{e:"chicken",j:"鶏肉・ニワトリ"},{e:"hunting",j:"狩り"},{e:"pleasure",j:"喜び"},{e:"stomach",j:"胃"},{e:"confuse",j:"混乱させる"},{e:"eighteen",j:"１８"},{e:"final",j:"最後の"},{e:"smoke",j:"煙・喫煙する"},{e:"advantage",j:"利点"},{e:"bake",j:"焼く"},{e:"flow",j:"流れる"},{e:"native",j:"母国の・その土地固有の"},{e:"pattern",j:"模様"},{e:"designer",j:"デザイナー"},{e:"resource",j:"資源"},{e:"rocket",j:"ロケット"},{e:"steam",j:"蒸気"},{e:"Thailand",j:"タイ"},{e:"weed",j:"雑草"},{e:"ban",j:"禁止する"},{e:"carbon",j:"炭素"},{e:"consider",j:"熟考する"},{e:"hang",j:"掛ける・吊るす"},{e:"mayor",j:"市長"},{e:"observe",j:"観察する・守る"},{e:"Hawaiian",j:"ハワイの"},{e:"mosquito",j:"蚊"},{e:"candle",j:"ろうそく"},{e:"complain",j:"文句を言う"},{e:"discuss",j:"議論する"},{e:"embarrassed",j:"恥ずかしい"},{e:"flat",j:"平らな・アパート"},{e:"including",j:"～を含めて"},{e:"jacket",j:"ジャケット"},{e:"match",j:"試合・調和する・マッチ"},{e:"button",j:"ボタン"},{e:"liter",j:"リットル"},{e:"seriously",j:"真面目に・深刻に"},{e:"sir",j:"あなた(男性への敬称)"},{e:"worth",j:"価値がある"},{e:"copy",j:"写す・コピー"},{e:"display",j:"展示する"},{e:"Greek",j:"ギリシャの"},{e:"heaven",j:"天国"},{e:"medal",j:"メダル"},{e:"fit",j:"合う・適した"},{e:"instrument",j:"器具・楽器"},{e:"Korean",j:"韓国の・韓国語"},{e:"shower",j:"シャワー"},{e:"sidewalk",j:"歩道"},{e:"supply",j:"供給する"},{e:"cleanup",j:"大掃除"},{e:"operate",j:"操作する・手術する"},{e:"rainbow",j:"虹"},{e:"lane",j:"車線・小道"},{e:"silk",j:"絹"},{e:"telescope",j:"望遠鏡"},{e:"ambulance",j:"救急車"},{e:"yawn",j:"あくび"},{e:"hey",j:"やあ"},{e:"itself",j:"それ自身"},{e:"industry",j:"産業"},{e:"advance",j:"進歩・前進する"},{e:"divide",j:"分ける"},{e:"bark",j:"吠える・木の皮"},{e:"prefer",j:"～の方を好む"},{e:"hobby",j:"趣味"},{e:"muscle",j:"筋肉"},{e:"noodle",j:"麺"},{e:"quick",j:"速い"},{e:"bathroom",j:"浴室・トイレ"},{e:"decrease",j:"減る・減らす"},{e:"difficulty",j:"困難"},{e:"gram",j:"グラム"},{e:"recognize",j:"認識する・認める"},{e:"bat",j:"コウモリ・バット"},{e:"brass band",j:"ブラスバンド"},{e:"effective",j:"効果的な"},{e:"mostly",j:"たいてい"},{e:"orchestra",j:"オーケストラ"},{e:"personality",j:"個性・性格"},{e:"Pacific",j:"太平洋の"},{e:"pupil",j:"生徒・瞳"}
+            ]
+        };
+
+        const chickContainer = document.getElementById('chick-container');
+        const chickMainGroup = document.getElementById('chick-main-group');
+        const chickMain = document.getElementById('chick-main');
+        const chickEyes = document.getElementById('chick-eyes');
+        const wingL = document.getElementById('chick-wing-l');
+        const wingR = document.getElementById('chick-wing-r');
+        const chickBubble = document.getElementById('chick-bubble');
+        let isAnimating = false, arrivalTimer = null, bubbleTimer = null, isWaitingForNext = false, isReviewMode = false; 
+
+        const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const msgMenu =["3分でもいいからがんばってみよう！", "今日もえらい！", "コツコツやろうね！", "復習も大事だよ！", "XPをためよう！"];
+        const msgSteps =["頑張ろう！", "全問正解めざして！", "準備はいい？", "新しい単語を覚えよう！"];
+        const msgCorrect =["その調子！", "すごい！", "いい感じ！", "ナイス！", "正解！", "やったね！"];
+        const msgWrong =["おしい！", "どんまい！", "ちがうみたい...", "もう一回！", "がんばれ！"];
+
+        function clearChickMessage() {
+            clearTimeout(bubbleTimer);
+            chickBubble.classList.remove('show');
+        }
+
+        function showChickMessage(text, duration = 3000) {
+            clearChickMessage();
+            setTimeout(() => {
+                chickBubble.textContent = text;
+                chickBubble.classList.add('show');
+                if (duration > 0) {
+                    bubbleTimer = setTimeout(() => { chickBubble.classList.remove('show'); }, duration);
+                }
+            }, 50);
+        }
+
+        function setChickExpression(expr) {
+            const eyes = chickEyes.querySelectorAll('.chick-eye');
+            eyes.forEach(eye => { eye.className = 'chick-eye'; eye.classList.add(expr); });
+        }
+
+        function applyEquipments() {
+            const acc = document.getElementById('chick-accessory');
+            acc.className = ''; 
+            if (equippedAcc && shopItems[equippedAcc]) {
+                acc.className = `${shopItems[equippedAcc].shape} ${shopItems[equippedAcc].equip}`;
+            }
+
+            const c = equippedColor && shopItems[equippedColor] ? shopItems[equippedColor].color : "#fde047";
+            chickMain.style.background = c;
+            wingL.style.background = c;
+            wingR.style.background = c;
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (isAnimating || chickContainer.style.display === 'none') return;
+            const rect = chickContainer.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const x = (e.clientX - centerX) / window.innerWidth * 15; 
+            const y = (e.clientY - centerY) / window.innerHeight * 15;
+            const lx = Math.max(-3, Math.min(3, x)); 
+            const ly = Math.max(-2.5, Math.min(2.5, y)); 
+            chickEyes.style.transform = `translate(calc(${lx}px + 2px), ${ly}px)`;
+            chickMainGroup.style.transform = `rotate(${lx * 0.15}deg)`;
+            wingL.style.transform = `rotate(${15 + ly}deg)`;
+            wingR.style.transform = `rotate(${-15 - ly}deg)`;
+        });
+
+        function chickJump() {
+            if (isAnimating || curPage === 'dressup') return; 
+            isAnimating = true;
+            
+            wingL.classList.add('flapping-l');
+            wingR.classList.add('flapping-r');
+            chickMainGroup.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.2)';
+            chickMainGroup.style.transform = 'translateY(-120px)';
+            setTimeout(() => {
+                chickMainGroup.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    isAnimating = false;
+                    wingL.classList.remove('flapping-l');
+                    wingR.classList.remove('flapping-r');
+                }, 400);
+            }, 400);
+        }
+
+        function chickSadAnim() {
+            if (isAnimating) return;
+            isAnimating = true;
+            chickMainGroup.style.transition = 'none';
+            let shakes = 0;
+            const shakeInterval = setInterval(() => {
+                shakes++;
+                const offsetX = (shakes % 2 === 0 ? 8 : -8);
+                chickMainGroup.style.transform = `translateY(20px) translateX(${offsetX}px)`;
+                if (shakes > 6) {
+                    clearInterval(shakeInterval);
+                    chickMainGroup.style.transition = 'transform 0.3s ease';
+                    chickMainGroup.style.transform = 'translateY(0) translateX(0)';
+                    setTimeout(() => { isAnimating = false; }, 300);
+                }
+            }, 60);
+        }
+
+        function chickReact(type) {
+            if (type === 'happy') {
+                setChickExpression('happy'); 
+                playSound('correct'); 
+                chickJump(); 
+                showChickMessage(getRand(msgCorrect), 2000);
+            } else if (type === 'sad') {
+                setChickExpression('sad'); 
+                playSound('wrong'); 
+                chickSadAnim(); 
+                showChickMessage(getRand(msgWrong), 2000);
+            }
+            setTimeout(() => setChickExpression('normal'), 1500);
+        }
+
+        function animateChickArrival() {
+            clearTimeout(arrivalTimer);
+            if (chickContainer.style.display === 'none') return;
+            
+            isAnimating = true;
+            chickMainGroup.style.transition = 'none';
+            chickMainGroup.style.transform = 'translateY(-800px)';
+            wingL.classList.add('flapping-l');
+            wingR.classList.add('flapping-r');
+
+            setTimeout(() => {
+                chickMainGroup.style.transition = 'transform 1.0s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                chickMainGroup.style.transform = 'translateY(0)';
+                
+                arrivalTimer = setTimeout(() => {
+                    wingL.classList.remove('flapping-l');
+                    wingR.classList.remove('flapping-r');
+                    playSound('land');
+                    
+                    chickMainGroup.style.transition = 'transform 0.15s ease-out';
+                    chickMainGroup.style.transform = 'scaleY(0.7) translateY(15px)';
+                    
+                    setTimeout(() => {
+                        chickMainGroup.style.transform = 'scaleY(1.1) translateY(-10px)';
+                        setTimeout(() => {
+                            chickMainGroup.style.transform = 'scaleY(1) translateY(0)';
+                            isAnimating = false;
+                            
+                            if(curPage === 'menu') showChickMessage(getRand(msgMenu), 3500);
+                            else if(curPage === 'steps') showChickMessage(getRand(msgSteps), 3000);
+                        }, 150);
+                    }, 150);
+                }, 1000);
+            }, 50);
+        }
+
+        function toggleSidebar() {
+            playSound('click');
+            document.getElementById('sidebar-wall').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('open');
+        }
+
+        function navigate(pageId) {
+            toggleSidebar();
+            showPage(pageId);
+        }
+
+        function showPage(id) {
+            const targetPage = document.getElementById(id + '-page');
+            if (!targetPage) return;
+            const isMovingToNewPage = (curPage !== id);
+            
+            if(isMovingToNewPage && id !== 'quiz') { 
+                playSound('click');
+                clearChickMessage(); 
+            }
+            curPage = id;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            targetPage.classList.add('active-page');
+            
+            const b = document.getElementById('back-btn');
+            const burger = document.getElementById('burger-btn');
+            const currentTitleContainer = targetPage.querySelector('.title-container');
+            
+            if (id === 'shop' || id === 'settings' || id === 'dictionary') {
+                chickContainer.style.display = 'none';
+            } else {
+                chickContainer.style.display = 'flex';
+                if (currentTitleContainer && !currentTitleContainer.contains(chickContainer)) {
+                    currentTitleContainer.appendChild(chickContainer);
+                }
+            }
+
+            if(id === 'menu') {
+                chickContainer.className = 'chick-wrapper chick-pos-menu';
+                b.classList.remove('back-btn-show');
+                burger.style.visibility = "visible"; burger.style.opacity = "1";
+                updateMenuProgress();
+                if (isMovingToNewPage) animateChickArrival();
+            } else if (id === 'steps') {
+                chickContainer.className = 'chick-wrapper chick-pos-steps';
+                b.classList.add('back-btn-show');
+                burger.style.visibility = "hidden"; burger.style.opacity = "0";
+                if (isMovingToNewPage) animateChickArrival();
+            } else if (id === 'quiz') {
+                chickContainer.className = 'chick-wrapper chick-pos-quiz'; 
+                b.classList.add('back-btn-show');
+                burger.style.visibility = "hidden"; burger.style.opacity = "0";
+                if (isMovingToNewPage && currentTitleContainer) animateChickArrival();
+            } else if (id === 'dressup') {
+                chickContainer.className = 'chick-wrapper chick-pos-dressup'; 
+                b.classList.add('back-btn-show');
+                burger.style.visibility = "hidden"; burger.style.opacity = "0";
+                renderDressup();
+                if (isMovingToNewPage && currentTitleContainer) animateChickArrival();
+            } else {
+                chickContainer.className = 'chick-wrapper chick-pos-menu';
+                b.classList.add('back-btn-show');
+                burger.style.visibility = "hidden"; burger.style.opacity = "0";
+                
+                if (id === 'shop') renderShop();
+                if (id === 'dictionary') renderDictionary();
+            }
+            window.scrollTo(0,0);
+        }
+
+        function handleBack() { 
+            playSound('click');
+            if(curPage==='quiz') {
+                if(isReviewMode) showPage('dictionary');
+                else openSteps(curLevel); 
+            } else {
+                showPage('menu');
+            }
+        }
+
+        function updateMenuProgress() {
+            for (const lv in levelProgress) {
+                if (dictionaryData[lv]) {
+                    const totalPlays = levelProgress[lv].reduce((s, v) => s + v, 0);
+                    const learnedWords = Math.min(totalPlays * 10, dictionaryData[lv].length); 
+                    const el = document.getElementById(`prog-text-${lv}`);
+                    if (el) el.textContent = `${learnedWords} / ${dictionaryData[lv].length}`;
+                }
+            }
+        }
+
+        function openSteps(lv) {
+            if (curPage === 'menu') playSound('click');
+            curLevel = lv;
+            document.getElementById('step-title').textContent = lv;
+            document.getElementById('step-underline').style.backgroundColor = colors[lv];
+            const list = document.getElementById('steps-list');
+            list.innerHTML = "";
+            const row = document.createElement('div'); row.className = 'snake-row';
+            list.appendChild(row);
+            
+            for(let i=0; i<5; i++) {
+                const unit = document.createElement('div'); unit.className = 'step-unit';
+                
+                const prog = levelProgress[lv][i] % 9 === 0 && levelProgress[lv][i] > 0 ? 9 : levelProgress[lv][i] % 9;
+                const offset = 440 - (prog / 9) * 440;
+                const icon = i === 0 ? `<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>` : `<span>${i+1}</span>`;
+
+                unit.innerHTML = `
+                    <svg class="progress-ring" viewBox="0 0 160 160">
+                        <circle class="ring-bg" cx="80" cy="80" r="70"/>
+                        <circle class="ring-fill" cx="80" cy="80" r="70" style="stroke: ${colors[lv]}; stroke-dashoffset: ${offset}"/>
+                    </svg>
+                    <button class="unit-button" style="background:${colors[lv]}" onclick="startQuiz(${i})">
+                        ${icon}
+                    </button>
+                `;
+                row.appendChild(unit);
+            }
+            showPage('steps');
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('shop-grid');
+            
+            const accHtml = Object.entries(shopItems).filter(([id, i]) => i.type === 'acc').map(([id, item]) => {
+                const isOwned = ownedItems.includes(id);
+                const canBuy = xp >= item.price;
+                return `
+                    <div class="shop-item">
+                        <div class="shop-icon-wrapper"><div class="${item.shape}"></div></div>
+                        <h3>${item.name}</h3>
+                        <div class="price">${item.price} XP</div>
+                        <button class="shop-btn" ${isOwned ? 'disabled' : (canBuy ? '' : 'disabled')} onclick="buyItem('${id}')">
+                            ${isOwned ? '購入済み' : (canBuy ? '購入する' : 'XP不足')}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const colorHtml = Object.entries(shopItems).filter(([id, i]) => i.type === 'color' && id !== 'color_yellow').map(([id, item]) => {
+                const isOwned = ownedItems.includes(id);
+                const canBuy = xp >= item.price;
+                return `
+                    <div class="shop-item">
+                        <div class="shop-icon-wrapper">
+                            <div style="width:40px; height:40px; border-radius:50%; background:${item.color}; border:3px solid #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <h3>${item.name}</h3>
+                        <div class="price">${item.price} XP</div>
+                        <button class="shop-btn" ${isOwned ? 'disabled' : (canBuy ? '' : 'disabled')} onclick="buyItem('${id}')">
+                            ${isOwned ? '購入済み' : (canBuy ? '購入する' : 'XP不足')}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = `
+                <div class="shop-section">
+                    <div class="shop-section-title">スキンカラー</div>
+                    <div class="shop-items-container">${colorHtml}</div>
+                </div>
+                <div class="shop-section">
+                    <div class="shop-section-title">アクセサリー</div>
+                    <div class="shop-items-container">${accHtml}</div>
+                </div>
+            `;
+        }
+
+        function buyItem(id) {
+            if (ownedItems.includes(id)) return;
+            if (xp >= shopItems[id].price) {
+                xp -= shopItems[id].price;
+                ownedItems.push(id);
+                playSound('correct');
+                document.getElementById('exp-display').textContent = xp + " XP";
+                saveData();
+                renderShop();
+                showAlert(`${shopItems[id].name}を購入しました！\n着せ替え画面で装備できます。`);
+            }
+        }
+
+        function renderDressup() {
+            const grid = document.getElementById('dressup-grid');
+            
+            let accHtml = `
+                <div class="shop-item ${equippedAcc === null ? 'equipped' : ''}">
+                    <div class="shop-icon-wrapper"><span style="font-size: 2rem; color: #94a3b8; font-weight: bold;">✖</span></div>
+                    <h3>なし</h3>
+                    <button class="shop-btn" ${equippedAcc === null ? 'disabled' : ''} onclick="equipItem('acc', null)">
+                        ${equippedAcc === null ? '装備中' : '装備する'}
+                    </button>
+                </div>
+            `;
+            accHtml += ownedItems.filter(id => shopItems[id] && shopItems[id].type === 'acc').map(id => {
+                const item = shopItems[id];
+                const isEquipped = equippedAcc === id;
+                return `
+                    <div class="shop-item ${isEquipped ? 'equipped' : ''}">
+                        <div class="shop-icon-wrapper"><div class="${item.shape}"></div></div>
+                        <h3>${item.name}</h3>
+                        <button class="shop-btn" ${isEquipped ? 'disabled' : ''} onclick="equipItem('acc', '${id}')">
+                            ${isEquipped ? '装備中' : '装備する'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const colorHtml = ownedItems.filter(id => shopItems[id] && shopItems[id].type === 'color').map(id => {
+                const item = shopItems[id];
+                const isEquipped = equippedColor === id;
+                return `
+                    <div class="shop-item ${isEquipped ? 'equipped' : ''}">
+                        <div class="shop-icon-wrapper">
+                            <div style="width:40px; height:40px; border-radius:50%; background:${item.color}; border:3px solid #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <h3>${item.name}</h3>
+                        <button class="shop-btn" ${isEquipped ? 'disabled' : ''} onclick="equipItem('color', '${id}')">
+                            ${isEquipped ? '装備中' : '装備する'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = `
+                <div class="shop-section">
+                    <div class="shop-section-title">スキンカラー</div>
+                    <div class="shop-items-container">${colorHtml}</div>
+                </div>
+                <div class="shop-section">
+                    <div class="shop-section-title">アクセサリー</div>
+                    <div class="shop-items-container">${accHtml}</div>
+                </div>
+            `;
+        }
+
+        function equipItem(type, id) {
+            if (type === 'acc') equippedAcc = id;
+            if (type === 'color') equippedColor = id;
+            playSound('click');
+            saveData();
+            renderDressup();
+            applyEquipments();
+        }
+
+        // 辞書タブ用変数
+        let currentDictTab = "入門";
+
+        function renderDictionary() {
+            const list = document.getElementById('dict-list');
+            
+            const tabs =["入門", "初級", "中級", "上級", "間違えた単語"];
+            const tabsHtml = tabs.map(t => 
+                `<button class="dict-tab ${currentDictTab === t ? 'active' : ''}" onclick="changeDictTab('${t}')">
+                    ${t === '間違えた単語' ? t : t + '単語'}
+                </button>`
+            ).join('');
+
+            let wordsToDisplay =[];
+            if (currentDictTab === "間違えた単語") {
+                wordsToDisplay = wrongWords;
+            } else {
+                wordsToDisplay = dictionaryData[currentDictTab] ||[];
+            }
+
+            let cardsHtml = "";
+            if (wordsToDisplay.length === 0) {
+                cardsHtml = `<p style='color:#94a3b8; font-size:1.2rem; text-align:center; margin-top: 30px; width:100%;'>単語がありません</p>`;
+            } else {
+                cardsHtml = wordsToDisplay.map(w => {
+                    const safeWord = w.e.replace(/'/g, "\\'"); 
+                    
+                    let fontSize = "1.4rem";
+                    let whiteSpace = "nowrap";
+                    let letterSpacing = "normal";
+
+                    if (w.e.includes(' ')) {
+                        // スペースが含まれる単語は改行を許容し、文字は少し小さくする程度
+                        fontSize = "1.1rem";
+                        whiteSpace = "normal";
+                    } else if (w.e.length >= 13) {
+                        // 13文字以上の長い単語は、ギリギリ1列に入るように調整
+                        fontSize = "1.05rem";
+                        letterSpacing = "-0.5px";
+                    } else if (w.e.length >= 10) {
+                        fontSize = "1.15rem";
+                    } else if (w.e.length >= 8) {
+                        fontSize = "1.25rem";
+                    }
+
+                    return `
+                        <div class="dict-word-card">
+                            <svg class="sound-icon" viewBox="0 0 24 24" onpointerdown="event.stopPropagation(); speakWord('${safeWord}')">
+                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                            </svg>
+                            <span style="font-size: ${fontSize}; font-weight: 900; color: #38bdf8; white-space: ${whiteSpace}; letter-spacing: ${letterSpacing}; width: 100%; display: block; margin: auto 0;">${w.e}</span>
+                            <span style="font-size: 1.1rem; color: #f8fafc; font-weight: bold; line-height: 1.2;">${w.j}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            let html = `
+                <div style="text-align:center; margin-bottom: 35px; width: 95%; max-width: 800px;">
+                    <button class="command-btn" style="background: #0ea5e9; border: 2px solid #0284c7; box-shadow: 0 5px 0 #0369a1; font-size: 1.3rem; width: 100%; padding: 20px; border-radius: 15px; color: #fff; font-weight: 900; transition: all 0.1s;" 
+                        onclick="startReviewQuiz()" ${wrongWords.length === 0 ? 'disabled style="background:#1e293b; color:#94a3b8; box-shadow:none; border-color:#334155; cursor:not-allowed;"' : ''}
+                        onmousedown="if(!this.disabled){ this.style.transform='translateY(3px)'; this.style.boxShadow='0 2px 0 #0369a1'; }"
+                        onmouseup="if(!this.disabled){ this.style.transform=''; this.style.boxShadow='0 5px 0 #0369a1'; }"
+                        onmouseleave="if(!this.disabled){ this.style.transform=''; this.style.boxShadow='0 5px 0 #0369a1'; }">
+                        間違えた問題を復習する
+                    </button>
+                </div>
+                <div class="dict-tabs">${tabsHtml}</div>
+                <div class="dict-word-list">${cardsHtml}</div>
+            `;
+
+            list.innerHTML = html;
+        }
+
+        function changeDictTab(tab) {
+            playSound('click');
+            currentDictTab = tab;
+            renderDictionary();
+        }
+
+        function executeCommand() {
+            const input = document.getElementById('command-input');
+            if (input.value === 'tzk9s') {
+                xp += 10000;
+                document.getElementById('exp-display').textContent = xp + " XP";
+                saveData();
+                playSound('correct');
+                showAlert("裏技成功！\n10000 XPを獲得しました！");
+                input.value = "";
+            } else {
+                playSound('wrong');
+                showAlert("無効なコマンドです。");
+            }
+        }
+
+        // クイズ機能
+        let activeUnitIdx = 0, currentRound = 1, sessionWords = [], currentSetWords =[], sEn = null, sJa = null, solvedCount = 0, totalSolved = 0;
+
+        function startQuiz(idx) { 
+            playSound('click'); 
+            isReviewMode = false;
+            activeUnitIdx = idx; 
+            currentRound = 1;
+            totalSolved = 0;
+            
+            let pool = dictionaryData[curLevel] || dictionaryData["入門"];
+            sessionWords = [...pool].sort(() => Math.random() - 0.5).slice(0, 10);
+            
+            if (sessionWords.length < 10) {
+                let extraPool = dictionaryData["入門"].sort(() => Math.random() - 0.5);
+                for(let w of extraPool) {
+                    if(!sessionWords.some(sw => sw.e === w.e)) {
+                        sessionWords.push(w);
+                        if(sessionWords.length === 10) break;
+                    }
+                }
+            }
+
+            loadSet(); 
+            showPage('quiz'); 
+        }
+
+        function startReviewQuiz() {
+            if (wrongWords.length === 0) return;
+            playSound('click');
+            isReviewMode = true;
+            currentRound = 1;
+            totalSolved = 0;
+
+            let reviewPool = [...wrongWords].sort(() => Math.random() - 0.5);
+            sessionWords = reviewPool.slice(0, 10);
+            
+            if (sessionWords.length < 10) {
+                let remaining = 10 - sessionWords.length;
+                let pool =[];
+                for(let lv in dictionaryData) pool = pool.concat(dictionaryData[lv]);
+                pool = pool.sort(() => Math.random() - 0.5);
+                for (let w of pool) {
+                    if (!sessionWords.some(sw => sw.e === w.e)) {
+                        sessionWords.push(w);
+                        remaining--;
+                        if(remaining === 0) break;
+                    }
+                }
+            }
+
+            loadSet();
+            showPage('quiz');
+        }
+
+        function loadSet() {
+            solvedCount = 0; sEn = sJa = null; isWaitingForNext = false;
+            
+            if (isReviewMode) {
+                document.getElementById('quiz-header').textContent = "復習モード";
+            } else {
+                document.getElementById('quiz-header').textContent = `${curLevel} Unit ${activeUnitIdx+1}`;
+            }
+
+            currentSetWords = currentRound === 1 ? sessionWords.slice(0, 5) : sessionWords.slice(5, 10);
+            document.getElementById('quiz-progress-bar').style.width = (totalSolved / 10 * 100) + "%";
+            
+            const enC = document.getElementById('col-en'); const jaC = document.getElementById('col-ja');
+            enC.innerHTML = ""; jaC.innerHTML = "";
+            const shuf = (a) => [...a].sort(() => Math.random() - 0.5);
+            shuf(currentSetWords).forEach(w => enC.appendChild(createItem(w.e, 'e')));
+            shuf(currentSetWords).forEach(w => jaC.appendChild(createItem(w.j, 'j')));
+            
+            if(currentRound === 1) setTimeout(() => showChickMessage("ペアを選んでね！", 2000), 1000);
+            else showChickMessage("後半戦スタート！", 1500);
+        }
+
+        function createItem(t, type) {
+            const d = document.createElement('div'); d.className = 'match-item'; d.textContent = t;
+            
+            // クイズボタンでも長い単語がはみ出ないようにフォントサイズ調整
+            if (type === 'e') {
+                if (t.includes(' ')) {
+                    d.style.fontSize = "1.1rem";
+                    d.style.whiteSpace = "normal";
+                } else if (t.length >= 13) {
+                    d.style.fontSize = "1.05rem";
+                    d.style.letterSpacing = "-0.5px";
+                } else if (t.length >= 10) {
+                    d.style.fontSize = "1.15rem";
+                } else if (t.length >= 8) {
+                    d.style.fontSize = "1.25rem";
+                }
+            } else {
+                if (t.length >= 10) d.style.fontSize = "1.0rem";
+                else if (t.length >= 6) d.style.fontSize = "1.2rem";
+            }
+
+            // onpointerdown を使ってラグなく反応させる
+            d.onpointerdown = () => {
+                if(d.classList.contains('solved') || isWaitingForNext) return;
+                
+                // 英単語がクリックされた時は「即座に」読み上げ、効果音と被らせない
+                if (type === 'e') {
+                    speakWord(t);
+                } else {
+                    playSound('click');
+                }
+
+                d.parentElement.querySelectorAll('.match-item').forEach(i => i.classList.remove('selected'));
+                d.classList.add('selected');
+                if(type === 'e') sEn = d; else sJa = d;
+                
+                if(sEn && sJa) {
+                    isWaitingForNext = true; 
+                    const match = currentSetWords.find(w => w.e === sEn.textContent && w.j === sJa.textContent);
+                    
+                    if(match) {
+                        sEn.classList.add('correct-match'); sJa.classList.add('correct-match');
+                        chickReact('happy'); 
+                        
+                        setTimeout(() => {
+                            sEn.classList.add('solved'); sJa.classList.add('solved');
+                            sEn.classList.remove('correct-match', 'selected'); sJa.classList.remove('correct-match', 'selected');
+                            
+                            solvedCount++; totalSolved++;
+                            document.getElementById('quiz-progress-bar').style.width = (totalSolved / 10 * 100) + "%";
+                            
+                            if(solvedCount === 5) { 
+                                if (currentRound === 1) {
+                                    currentRound = 2;
+                                    setTimeout(() => loadSet(), 200);
+                                } else {
+                                    playSound('clear'); 
+                                    
+                                    if (isReviewMode) {
+                                        xp += 5; 
+                                        document.getElementById('exp-display').textContent = xp + " XP";
+                                        showChickMessage(`復習クリア！ 5XPゲット！`, 2000);
+                                        saveData();
+                                        setTimeout(() => showPage('dictionary'), 600);
+                                    } else {
+                                        const gainedXp = xpRewards[curLevel] || 0;
+                                        xp += gainedXp;
+                                        document.getElementById('exp-display').textContent = xp + " XP";
+                                        showChickMessage(`クリア！ ${gainedXp}XPゲット！`, 2000);
+                                        levelProgress[curLevel][activeUnitIdx]++; 
+                                        saveData();
+                                        setTimeout(() => openSteps(curLevel), 600); 
+                                    }
+                                }
+                            } else {
+                                isWaitingForNext = false;
+                            }
+                            sEn = sJa = null;
+                        }, 200);
+
+                    } else {
+                        sEn.classList.add('wrong-match'); sJa.classList.add('wrong-match');
+                        chickReact('sad'); 
+
+                        const errorWord = currentSetWords.find(w => w.e === sEn.textContent);
+                        if (errorWord && !wrongWords.some(w => w.e === errorWord.e)) {
+                            wrongWords.push(errorWord);
+                            saveData();
+                        }
+
+                        const a=sEn, b=sJa;
+                        setTimeout(() => { 
+                            a.classList.remove('selected', 'wrong-match'); 
+                            b.classList.remove('selected', 'wrong-match'); 
+                            isWaitingForNext = false;
+                        }, 400);
+                        sEn = sJa = null;
+                    }
+                }
+            };
+            return d;
+        }
+
+        window.onload = () => {
+            loadData();
+            applyEquipments();
+            updateMenuProgress();
+            document.getElementById('exp-display').textContent = xp + " XP";
+            setTimeout(animateChickArrival, 500);
+        };
+    </script>
+</body>
+</html>

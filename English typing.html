@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青軸タイピングゲーム - Night Mode</title>
+    <style>
+        /* 全体の背景設定：黒寄りのダークグレーで夜空を表現 */
+        body {
+            background: linear-gradient(to bottom, #11131a, #1c1f2b);
+            color: #fff;
+            font-family: 'Consolas', 'Courier New', 'Meiryo', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* 星空の背景アニメーション用 */
+        #stars-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle linear infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.1; transform: scale(0.8); }
+            50% { opacity: 0.8; transform: scale(1.2); }
+        }
+
+        /* パネル（画面のコンテナ）をガラス風にする */
+        .panel {
+            background: rgba(30, 35, 45, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(8px);
+            padding: 40px;
+            text-align: center;
+            width: 90%;
+            max-width: 900px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #eee;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        p.desc {
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* 設定エリア（単語数選択） */
+        .settings {
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        select {
+            background-color: #2a2f3a;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 15px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        button {
+            background-color: #3b4252;
+            color: #fff;
+            border: 2px solid #556;
+            padding: 12px 30px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.2s;
+            font-family: inherit;
+            margin: 10px;
+        }
+
+        button:hover {
+            background-color: #4c566a;
+            border-color: #8892b0;
+        }
+
+        /* プレイ画面専用のコンテナ調整 */
+        #play-screen {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            padding: 10px 0;
+            max-width: 1000px;
+        }
+
+        /* プレイ画面の上部ヘッダー（戻るボタンと進捗） */
+        .play-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        #back-btn {
+            font-size: 1rem;
+            padding: 8px 15px;
+            margin: 0;
+            background-color: #2a2f3a;
+            border: 1px solid #555;
+        }
+
+        #back-btn:hover {
+            background-color: #ff5252;
+            border-color: #ff8a80;
+        }
+
+        #progress {
+            font-size: 1.3rem;
+            color: #8892b0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 20px;
+            border-radius: 20px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+        }
+
+        #words-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 40px;
+            justify-content: center;
+            width: 100%;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 20px;
+            scrollbar-width: none;
+        }
+        #words-box::-webkit-scrollbar { display: none; }
+
+        .word {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .letters {
+            display: flex;
+            font-size: 3.5rem;
+            line-height: 1.2;
+        }
+
+        /* まだ打っていない文字（グレー） */
+        .letter {
+            color: #555;
+            position: relative;
+        }
+
+        /* 打った文字（白） */
+        .letter.typed {
+            color: #fff;
+        }
+
+        /* 間違えた文字（赤） */
+        .letter.error {
+            color: #ff5252 !important;
+        }
+
+        /* 現在打つべき文字（文字色を青にする） */
+        .letter.active-char {
+            color: #4a90e2 !important;
+        }
+        .letter.active-char::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 100%;
+            height: 4px;
+            background-color: #4a90e2;
+        }
+
+        .translation {
+            font-size: 1.1rem;
+            color: #8892b0;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        /* クリア画面の大きな文字 */
+        .congrats {
+            font-size: 4rem;
+            color: #e5c07b;
+            margin-bottom: 20px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #result {
+            font-size: 1.8rem;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            color: #abb2bf;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 星空のコンテナ -->
+    <div id="stars-container"></div>
+
+    <!-- ホーム画面 -->
+    <div id="start-screen" class="panel">
+        <h1>Typing Game</h1>
+        <p class="desc">
+            単語を最後まで打ち終わると、自動的に次の単語へ進みます。<br>
+            <span style="font-size: 0.9rem;">※音声が読み上げられます。単語の途中のスペースはスキップされます。</span>
+        </p>
+        <div class="settings">
+            <label for="word-count-select">出題数：</label>
+            <select id="word-count-select">
+                <option value="10">10 単語</option>
+                <option value="20">20 単語</option>
+                <option value="30" selected>30 単語</option>
+                <option value="50">50 単語</option>
+                <option value="100">100 単語</option>
+            </select>
+        </div>
+        <button id="start-btn">ゲーム開始</button>
+    </div>
+
+    <!-- プレイ画面 -->
+    <div id="play-screen" class="panel hidden">
+        <div class="play-header">
+            <button id="back-btn">◀ ホームに戻る</button>
+            <div id="progress">1 / 30</div>
+        </div>
+        <div id="words-box"></div>
+    </div>
+
+    <!-- リザルト（クリア）画面 -->
+    <div id="result-screen" class="panel hidden">
+        <h1 class="congrats">Congratulations!</h1>
+        <div id="result"></div>
+        <div>
+            <button id="restart-btn">もう一度プレイ</button>
+            <button id="home-btn">ホームへ戻る</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 背景の星空を生成 ---
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            container.innerHTML = ''; 
+            const starCount = 80; 
+            for (let i = 0; i < starCount; i++) {
+                let star = document.createElement('div');
+                star.className = 'star';
+                let size = Math.random() * 2 + 1; 
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + 'vw';
+                star.style.top = Math.random() * 100 + 'vh';
+                star.style.animationDuration = (Math.random() * 4 + 2) + 's';
+                star.style.animationDelay = (Math.random() * 2) + 's';
+                container.appendChild(star);
+            }
+        }
+        createStars();
+
+        // ==========================================
+        // ↓ここにご自身のダウンロードしたファイル名を入れてください
+        // ==========================================
+        const clickSoundUrl = "https://otologic.jp/sounds/se/pre/PC-Keyboard06-04(Single-Mid).mp3"; 
+
+        const audioPool =[];
+        const poolSize = 15;
+        let audioIndex = 0;
+        let audioCtx = null;
+        let isAudioInitialized = false;
+
+        function initAudio() {
+            if (isAudioInitialized) return;
+            isAudioInitialized = true;
+
+            for (let i = 0; i < poolSize; i++) {
+                const audio = new Audio(clickSoundUrl);
+                audio.preload = 'auto'; 
+                audioPool.push(audio);
+            }
+
+            // 【遅延対策】開始ボタンを押した瞬間に一度再生してブラウザに準備させる
+            audioPool.forEach(audio => {
+                audio.volume = 0;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 0.8; 
+                }).catch(() => {});
+            });
+
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playBlueSwitchSound() {
+            if (audioPool.length === 0) return;
+            const audio = audioPool[audioIndex];
+            
+            audio.pause();
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+            
+            setTimeout(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }, 150);
+
+            audioIndex = (audioIndex + 1) % poolSize;
+        }
+
+        function playErrorSound() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(80, t); 
+            
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(t);
+            osc.stop(t + 0.15);
+        }
+
+        // --- 音声読み上げ機能 (Web Speech API) ---
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                // 再生中の音声をキャンセルして新しく読み上げる
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; // アメリカ英語
+                utterance.rate = 1.0;     // 話す速度 (0.1 〜 10)
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- 辞書データ ---
+        const rawText = `chance 機会・偶然　green 緑　traditional 伝統的な　sick 病気の　box 箱　store 店・蓄える　vacation 休暇　feeling 感情・感覚　warm 暖かい　white 白　close 近い・閉める　rain 雨　street 通り　draw 描く・引く　machine 機械　yen 円　end 終わり・目的　free 自由な・無料の　baby 赤ちゃん　newspaper 新聞　under ～の下に　door ドア　forget 忘れる　present 贈り物・現在の・出席している　everything 全てのもの　face 顔・直面する　fall 落ちる・秋　cat 猫　already すでに　finally ついに　actually 実際は　stand 立つ・我慢する　village 村　graph グラフ　save 救う・節約する・保存する　shopping 買い物　red 赤　winter 冬　phone 電話　excited 興奮した　once 一度・かつて　six ６　system システム・制度　cry 泣く・叫ぶ　easily 容易に　news ニュース・知らせ　afraid 恐れて　tired 疲れた　forest 森　math 数学　nature 自然・性質　catch 捕まえる　baseball 野球　swim 泳ぐ　busy 忙しい　clothes 服　sun 太陽　explain 説明する　power 力・権力　rule 規則・支配する　environment 環境　Canada カナダ　nothing 何も～ない　star 星・スター　welcome 歓迎する・ようこそ　continue 続ける　late 遅い・故～　farmer 農家　quickly 速く　thirty ３０　pay 払う　weekend 週末　air 空気・空中　hot 熱い・暑い　bed ベッド　dance 踊る　produce 生産する　area 地域・面積　short 短い　art 芸術・美術　arrive 到着する　university 大学　wow わあ　fact 事実　angry 怒った　[United States] アメリカ合衆国　black 黒　mind 心・気にする　ball ボール　basketball バスケットボール　office 事務所・職場　Mrs. ～さん(既婚女性)　contest コンテスト・競争　e-mail Eメール　vegetable 野菜　p.m. 午後　die 死ぬ　far 遠い　cake ケーキ　pass 通る・手渡す・合格する　twenty ２０　share 共有する・分ける　rich 金持ちの・豊かな　alone 一人で　sign 標識・署名する・合図　third ３番目の　pet ペット　ride 乗る　map 地図　though ～だけれども　lesson 授業・レッスン　meeting 会議・会うこと　poor 貧しい・かわいそうな　left 左・去った　maybe たぶん　difference 違い　o'clock ～時　son 息子　return 戻る・返す　Africa アフリカ　hundred １００　yet まだ・しかし　abroad 海外へ　classroom 教室　road 道　weather 天気　beach 浜辺　plane 飛行機　China 中国　exciting 興奮させる　cause 原因・引き起こす　rice 米・ご飯　half 半分　tour 旅行・ツアー　evening 夕方　host 主催者・主人　communication コミュニケーション・伝達　farm 農場　goal 目標・ゴール　wrong 間違った　sky 空　moon 月　season 季節　test 試験　mistake 間違い　follow 従う・ついて行く　develop 発達させる・開発する　London ロンドン　necessary 必要な　fine 元気な・晴れた・素晴らしい　less より少ない　receive 受け取る　myself 私自身　order 注文・命令・順序　seven ７　lake 湖　lie 嘘をつく・横たわる　worker 労働者　concert コンサート　outside 外側　hall 会館・ホール・廊下　spring 春・泉・バネ　card カード　gift 贈り物　type 型・タイプ・打つ　born 生まれた　suddenly 突然　window 窓　fruit 果物　among ～の間で(3つ以上)　age 年齢・時代　shall ～しましょうか　health 健康　ground 地面　medicine 薬　piano ピアノ　collect 集める　strange 奇妙な・見知らぬ　technology 科学技術　eight ８　seem ～のように見える　hit 打つ・当たる　side 側・横　[New York] ニューヨーク　dictionary 辞書　seat 座席　garden 庭　dangerous 危険な　laugh 笑う　design デザイン・設計する　dark 暗い　gold 金　stone 石　visitor 訪問者　writer 作家　head 頭　land 土地・着陸する　done した(doの過去分詞)　brain 脳　else 他に　top 頂上・トップ　cooking 料理　kite 凧　fight 戦う　elephant 象　line 線・列　daughter 娘　local 地元の　shoe 靴　field 野原・畑・分野　piece 一片・１つ　Friday 金曜日　grandma おばあちゃん　coffee コーヒー　several いくつかの　especially 特に　milk 牛乳　product 製品　zoo 動物園　uncle おじ　century 世紀　floor 床・階　Chinese 中国の・中国人・中国語　check 確認する・小切手　natural 自然の　island 島　along ～に沿って　situation 状況　wall 壁　excuse 許す・言い訳　wife 妻　expensive 高価な　forward 前へ・転送する　himself 彼自身　government 政府　carefully 注意深く　notice 気づく・通知　wood 木材・森　tall 背が高い　garbage ゴミ　possible 可能な　T-shirt Tシャツ　paint 絵の具・描く　report 報告する・レポート　trouble トラブル・困難　pick 選ぶ・摘む　breakfast 朝食　wind 風　business ビジネス・仕事　Olympic オリンピック　cool 涼しい・かっこいい　center 中心　hotel ホテル　football フットボール・サッカー　cut 切る　cup カップ　meaning 意味　real 本当の　safe 安全な・金庫　research 研究　dish 皿・料理　imagine 想像する　inside 内側　low 低い　realize 実現する・気づく　Monday 月曜日　borrw(borrow) 借りる　anyone 誰でも　create 創造する　careful 注意深い　owner 所有者　throw 投げる　calendar カレンダー　gate 門　nurse 看護師　simple 単純な・簡単な　memory 記憶・思い出　tourist 旅行者　ticket チケット　yourself あなた自身　support 支持する・支える　project 計画・プロジェクト　Europe ヨーロッパ　ice 氷　coin 硬貨　prepare 準備する　protect 保護する　horse 馬　May ５月　control 支配する・管理する　college 大学　aunt おば　probably たぶん　prize 賞　voice 声　nine ９　waste 無駄にする・廃棄物　thousand １０００　July ７月　heart 心臓・心　million １００万　electricity 電気　theater 劇場　snow 雪　amount 量　insect 昆虫　slowly ゆっくりと　improve 改善する・良くなる　bottle ボトル　hull(full?) 満ちた・いっぱい　leg 脚　tooth 歯　heat 熱・熱する　instead 代わりに　themselves 彼ら自身　drive 運転する・ドライブ　[elementary school] 小学校　result 結果　marry 結婚する　opinion 意見　ready 準備ができた　healthy 健康な　desk 机　goodbye さようなら　dad パパ　hungry 空腹の　customer 客　leader リーダー・指導者　smartphone スマートフォン　might ～かもしれない・力　egg 卵　friendly 友好的な・親しみやすい　kid 子供　cherry サクランボ・桜　cover 覆う・表紙　hamburger ハンバーガー　behind ～の後ろに　wild 野生の　enter 入る　kill 殺す　guess 推測する　education 教育　orange オレンジ　perfect 完璧な　climb 登る　reach 到着する・届く　race 競走・人種　social 社会的な　solve 解決する　across ～を横切って　clear 晴れた・澄んだ・明らかな　August ８月　percent パーセント　temple 寺　cap 帽子　past 過去・～を過ぎて　temperature 温度・体温　advice 助言　nervous 神経質な・緊張して　skill 技術　common 共通の・普通の　ceremony 式典　delicious 美味しい　subject 教科・主題　exchange 交換する　sugar 砂糖　adult 大人　pen ペン　notebook ノート　wonder 不思議に思う・驚き　communicate 意思疎通する　foot 足　smell 匂い・匂いがする　Dr. 博士・医者　international 国際的な　A.M. 午前　against ～に反対して・対抗して　reduce 減らす　stadium 競技場　discover 発見する　miss 逃す・恋しく思う　size サイズ　effect 効果・影響　cow 牛　April ４月　set 置く・セットする　stage 舞台・段階　service サービス　satellite 衛星　hurt 傷つける・痛む　view 眺め・見解　touch 触る・感動させる　introduce 紹介する　ring 指輪・鳴る　police 警察　national 国の・国立の　salt 塩　invite 招待する　plastic プラスチック　lucky 幸運な　dry 乾いた　jump 跳ぶ　cell 細胞・電池　March ３月　ski スキー　sentence 文　print 印刷する　ocean 大洋　dollar ドル　increase 増える・増やす　exercise 運動・練習　captain キャプテン・船長　volleyball バレーボール　meat 肉　prince 王子　distance 距離　bridge 橋　England イングランド　lead 導く　moment 瞬間　hair 髪・毛　banana バナナ　deep 深い　king 王　war 戦争　meal 食事　husband 夫　June ６月　taste 味・味がする　solar 太陽の　wash 洗う　photo 写真　Wednesday 水曜日　relax くつろぐ　guide 案内する・ガイド　camp キャンプ　fire 火・火事　serious 真剣な・深刻な　India インド　community 地域社会・共同体　fifteen １５　period 期間・授業時間　rock 岩・ロック　France フランス　blood 血　Christmas クリスマス　kilometer キロメートル　allow 許す　beginning 始まり　fresh 新鮮な`;
+
+        const dictionary =[];
+        const items = rawText.split(/　|\n|\t/);
+        
+        items.forEach(item => {
+            let str = item.trim();
+            if (!str) return;
+
+            // 半角スペース2個以上を1個にまとめる
+            str = str.replace(/ {2,}/g, ' ');
+
+            const lastSpace = str.lastIndexOf(' ');
+            if (lastSpace !== -1) {
+                let en = str.substring(0, lastSpace).trim().replace(/^\[|\]$/g, '');
+                let ja = str.substring(lastSpace + 1).trim();
+
+                // 【追加】アルファベットとスペース以外が含まれる単語を除外（borrw(borrow) など弾く）
+                if (!/^[a-zA-Z\s]+$/.test(en)) return;
+
+                // 大文字だけで構成されている単語を除外
+                if (/[A-Z]/.test(en) && !/[a-z]/.test(en)) return;
+
+                // 大文字が含まれる単語をすべて小文字にする
+                en = en.toLowerCase();
+
+                dictionary.push({ en, ja });
+            }
+        });
+
+        // --- ゲーム進行状態 ---
+        let totalWordsCount = 30;
+        let selectedWords =[];
+        let currentWordIdx = 0;
+        let currentCharIdx = 0;
+        let startTime = 0;
+        let isPlaying = false;
+
+        const startScreen = document.getElementById('start-screen');
+        const playScreen = document.getElementById('play-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const wordsBox = document.getElementById('words-box');
+        const progressEl = document.getElementById('progress');
+        const resultEl = document.getElementById('result');
+
+        // 画面切り替え
+        function showScreen(screen) {
+            startScreen.classList.add('hidden');
+            playScreen.classList.add('hidden');
+            resultScreen.classList.add('hidden');
+            document.getElementById(`${screen}-screen`).classList.remove('hidden');
+        }
+
+        function initGame() {
+            initAudio(); 
+            
+            totalWordsCount = parseInt(document.getElementById('word-count-select').value);
+
+            const shuffled = [...dictionary].sort(() => 0.5 - Math.random());
+            selectedWords = shuffled.slice(0, totalWordsCount);
+            
+            currentWordIdx = 0;
+            currentCharIdx = 0;
+            isPlaying = true;
+            startTime = Date.now();
+
+            showScreen('play');
+            renderWords();
+            skipSpaces();
+            updateUI();
+            
+            // 最初の単語を読み上げ
+            speakWord(selectedWords[currentWordIdx].en);
+        }
+
+        // 単語途中のスペースを自動スキップ
+        function skipSpaces() {
+            const wordObj = selectedWords[currentWordIdx];
+            if (!wordObj) return;
+
+            while (currentCharIdx < wordObj.en.length && wordObj.en[currentCharIdx] === ' ') {
+                const targetCharEl = document.getElementById(`char-${currentWordIdx}-${currentCharIdx}`);
+                if (targetCharEl) {
+                    targetCharEl.classList.remove('error');
+                    targetCharEl.classList.add('typed');
+                }
+                currentCharIdx++;
+            }
+        }
+
+        function renderWords() {
+            wordsBox.innerHTML = '';
+            selectedWords.forEach((wordObj, wIdx) => {
+                const wordDiv = document.createElement('div');
+                wordDiv.className = 'word';
+                wordDiv.id = `word-${wIdx}`;
+
+                const lettersDiv = document.createElement('div');
+                lettersDiv.className = 'letters';
+                lettersDiv.id = `letters-${wIdx}`;
+
+                for (let cIdx = 0; cIdx < wordObj.en.length; cIdx++) {
+                    const charSpan = document.createElement('span');
+                    charSpan.className = 'letter';
+                    charSpan.id = `char-${wIdx}-${cIdx}`;
+                    charSpan.innerText = wordObj.en[cIdx] === ' ' ? '\u00A0' : wordObj.en[cIdx];
+                    lettersDiv.appendChild(charSpan);
+                }
+
+                const transDiv = document.createElement('div');
+                transDiv.className = 'translation';
+                transDiv.innerText = wordObj.ja;
+
+                wordDiv.appendChild(lettersDiv);
+                wordDiv.appendChild(transDiv);
+                wordsBox.appendChild(wordDiv);
+            });
+        }
+
+        function updateUI() {
+            progressEl.innerText = `${currentWordIdx + 1} / ${totalWordsCount}`;
+            
+            // スタイルリセット
+            document.querySelectorAll('.letter').forEach(el => el.classList.remove('active-char'));
+
+            if (currentWordIdx < totalWordsCount) {
+                const currentWordEl = document.getElementById(`word-${currentWordIdx}`);
+                if (currentWordEl) {
+                    currentWordEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                const targetCharEl = document.getElementById(`char-${currentWordIdx}-${currentCharIdx}`);
+                if (targetCharEl) {
+                    targetCharEl.classList.add('active-char');
+                }
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            const timeTaken = ((Date.now() - startTime) / 1000).toFixed(1);
+            showScreen('result');
+            resultEl.innerHTML = `
+                クリアタイム: <span style="color:#fff;">${timeTaken} 秒</span><br>
+                クリア単語数: <span style="color:#fff;">${totalWordsCount} 単語</span>
+            `;
+        }
+
+        // --- キー入力処理 ---
+        document.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            if (e.repeat) return; // 長押しブロック
+
+            // 装飾キー等は無視
+            if (e.key !== ' ' && e.key.length !== 1) return;
+
+            // タイピング中の処理
+            if (currentWordIdx < totalWordsCount) {
+                const wordObj = selectedWords[currentWordIdx];
+                const targetChar = wordObj.en[currentCharIdx];
+                const targetCharEl = document.getElementById(`char-${currentWordIdx}-${currentCharIdx}`);
+
+                if (e.key === targetChar) {
+                    // 正解
+                    e.preventDefault();
+                    playBlueSwitchSound();
+                    
+                    targetCharEl.classList.remove('error');
+                    targetCharEl.classList.add('typed');
+                    
+                    currentCharIdx++;
+                    
+                    skipSpaces();
+                    
+                    // 単語の最後まで打ち終わった場合（スペースキー待ちをせず自動で次へ）
+                    if (currentCharIdx >= wordObj.en.length) {
+                        currentWordIdx++;
+                        currentCharIdx = 0;
+                        
+                        if (currentWordIdx >= totalWordsCount) {
+                            endGame();
+                        } else {
+                            skipSpaces();
+                            updateUI();
+                            // 次の単語を読み上げ
+                            speakWord(selectedWords[currentWordIdx].en);
+                        }
+                    } else {
+                        updateUI();
+                    }
+                } else {
+                    // 誤打
+                    e.preventDefault();
+                    playErrorSound();
+                    targetCharEl.classList.add('error');
+                }
+            }
+        });
+
+        // ボタンイベント
+        document.getElementById('start-btn').addEventListener('click', initGame);
+        document.getElementById('restart-btn').addEventListener('click', initGame);
+        
+        // プレイ画面・クリア画面からホームへ戻る
+        document.getElementById('home-btn').addEventListener('click', () => {
+            isPlaying = false;
+            showScreen('start');
+        });
+        document.getElementById('back-btn').addEventListener('click', () => {
+            isPlaying = false;
+            showScreen('start');
+        });
+
+    </script>
+</body>
+</html>
