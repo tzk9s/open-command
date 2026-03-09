@@ -562,13 +562,14 @@
         function initSpeech() {
             if (!speechWarmupDone && 'speechSynthesis' in window) {
                 const u = new SpeechSynthesisUtterance('');
-                u.volume = 0;
+                u.volume = 0; // 無音で発音してエンジンを起動しておく
                 window.speechSynthesis.speak(u);
                 
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 speechWarmupDone = true;
             }
         }
+        document.addEventListener('touchstart', initSpeech, {once: true});
         document.addEventListener('pointerdown', initSpeech, {once: true});
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -625,10 +626,17 @@
 
         function speakWord(text) {
             if ('speechSynthesis' in window) {
+                // 前の音声をキャンセル
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                window.speechSynthesis.speak(utterance);
+                
+                // OSの音声エンジンの詰まりを防ぐため、ほんの少しだけ遅らせてから発音命令を出す
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 1.0; // 速度とピッチを固定して処理を少しでも軽くする
+                    utterance.pitch = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                }, 10);
             }
         }
 
@@ -741,7 +749,7 @@
         const wingL = document.getElementById('chick-wing-l');
         const wingR = document.getElementById('chick-wing-r');
         const chickBubble = document.getElementById('chick-bubble');
-        let isAnimating = false, arrivalTimer = null, bubbleTimer = null, isWaitingForNext = false, isReviewMode = false; 
+        let isAnimating = false, arrivalTimer = null, bubbleTimer = null; 
 
         const getRand = (arr) => arr[Math.floor(Math.random() * arr.length)];
         const msgMenu =["3分でもいいからがんばってみよう！", "今日もえらい！", "コツコツやろうね！", "復習も大事だよ！", "XPをためよう！"];
@@ -1162,11 +1170,9 @@
                     let letterSpacing = "normal";
 
                     if (w.e.includes(' ')) {
-                        // スペースが含まれる単語は改行を許容し、文字は少し小さくする程度
                         fontSize = "1.1rem";
                         whiteSpace = "normal";
                     } else if (w.e.length >= 13) {
-                        // 13文字以上の長い単語は、ギリギリ1列に入るように調整
                         fontSize = "1.05rem";
                         letterSpacing = "-0.5px";
                     } else if (w.e.length >= 10) {
@@ -1226,17 +1232,16 @@
         }
 
         // クイズ機能
-        let activeUnitIdx = 0, currentRound = 1, sessionWords = [], currentSetWords =[], sEn = null, sJa = null, solvedCount = 0, totalSolved = 0;
+        let activeUnitIdx = 0, sessionWords = [], wordQueue =[], sEn = null, sJa = null, totalSolved = 0, isWaitingForNext = false, isReviewMode = false;
 
         function startQuiz(idx) { 
             playSound('click'); 
             isReviewMode = false;
             activeUnitIdx = idx; 
-            currentRound = 1;
             totalSolved = 0;
             
             let pool = dictionaryData[curLevel] || dictionaryData["入門"];
-            sessionWords = [...pool].sort(() => Math.random() - 0.5).slice(0, 10);
+            sessionWords =[...pool].sort(() => Math.random() - 0.5).slice(0, 10);
             
             if (sessionWords.length < 10) {
                 let extraPool = dictionaryData["入門"].sort(() => Math.random() - 0.5);
@@ -1256,10 +1261,9 @@
             if (wrongWords.length === 0) return;
             playSound('click');
             isReviewMode = true;
-            currentRound = 1;
             totalSolved = 0;
 
-            let reviewPool = [...wrongWords].sort(() => Math.random() - 0.5);
+            let reviewPool =[...wrongWords].sort(() => Math.random() - 0.5);
             sessionWords = reviewPool.slice(0, 10);
             
             if (sessionWords.length < 10) {
@@ -1281,7 +1285,9 @@
         }
 
         function loadSet() {
-            solvedCount = 0; sEn = sJa = null; isWaitingForNext = false;
+            sEn = sJa = null; 
+            isWaitingForNext = false;
+            wordQueue =[...sessionWords];
             
             if (isReviewMode) {
                 document.getElementById('quiz-header').textContent = "復習モード";
@@ -1289,47 +1295,64 @@
                 document.getElementById('quiz-header').textContent = `${curLevel} Unit ${activeUnitIdx+1}`;
             }
 
-            currentSetWords = currentRound === 1 ? sessionWords.slice(0, 5) : sessionWords.slice(5, 10);
-            document.getElementById('quiz-progress-bar').style.width = (totalSolved / 10 * 100) + "%";
+            document.getElementById('quiz-progress-bar').style.width = "0%";
             
-            const enC = document.getElementById('col-en'); const jaC = document.getElementById('col-ja');
+            const enC = document.getElementById('col-en'); 
+            const jaC = document.getElementById('col-ja');
             enC.innerHTML = ""; jaC.innerHTML = "";
-            const shuf = (a) => [...a].sort(() => Math.random() - 0.5);
-            shuf(currentSetWords).forEach(w => enC.appendChild(createItem(w.e, 'e')));
-            shuf(currentSetWords).forEach(w => jaC.appendChild(createItem(w.j, 'j')));
             
-            if(currentRound === 1) setTimeout(() => showChickMessage("ペアを選んでね！", 2000), 1000);
-            else showChickMessage("後半戦スタート！", 1500);
+            const initialWords = wordQueue.splice(0, 5);
+            
+            const shuf = (a) =>[...a].sort(() => Math.random() - 0.5);
+            shuf(initialWords).forEach(w => enC.appendChild(createItem(w.e, 'e')));
+            shuf(initialWords).forEach(w => jaC.appendChild(createItem(w.j, 'j')));
+            
+            setTimeout(() => showChickMessage("ペアを選んでね！", 2000), 1000);
+        }
+
+        function applyFontSize(el, t, type) {
+            if (type === 'e') {
+                if (t.includes(' ')) {
+                    el.style.fontSize = "1.1rem";
+                    el.style.whiteSpace = "normal";
+                    el.style.letterSpacing = "normal";
+                } else if (t.length >= 13) {
+                    el.style.fontSize = "1.05rem";
+                    el.style.letterSpacing = "-0.5px";
+                    el.style.whiteSpace = "break-word";
+                } else if (t.length >= 10) {
+                    el.style.fontSize = "1.15rem";
+                    el.style.letterSpacing = "normal";
+                    el.style.whiteSpace = "break-word";
+                } else if (t.length >= 8) {
+                    el.style.fontSize = "1.25rem";
+                    el.style.letterSpacing = "normal";
+                    el.style.whiteSpace = "break-word";
+                } else {
+                    el.style.fontSize = "1.5rem";
+                    el.style.letterSpacing = "normal";
+                    el.style.whiteSpace = "break-word";
+                }
+            } else {
+                el.style.whiteSpace = "break-word";
+                el.style.letterSpacing = "normal";
+                if (t.length >= 10) el.style.fontSize = "1.0rem";
+                else if (t.length >= 6) el.style.fontSize = "1.2rem";
+                else el.style.fontSize = "1.5rem";
+            }
         }
 
         function createItem(t, type) {
-            const d = document.createElement('div'); d.className = 'match-item'; d.textContent = t;
-            
-            // クイズボタンでも長い単語がはみ出ないようにフォントサイズ調整
-            if (type === 'e') {
-                if (t.includes(' ')) {
-                    d.style.fontSize = "1.1rem";
-                    d.style.whiteSpace = "normal";
-                } else if (t.length >= 13) {
-                    d.style.fontSize = "1.05rem";
-                    d.style.letterSpacing = "-0.5px";
-                } else if (t.length >= 10) {
-                    d.style.fontSize = "1.15rem";
-                } else if (t.length >= 8) {
-                    d.style.fontSize = "1.25rem";
-                }
-            } else {
-                if (t.length >= 10) d.style.fontSize = "1.0rem";
-                else if (t.length >= 6) d.style.fontSize = "1.2rem";
-            }
+            const d = document.createElement('div'); 
+            d.className = 'match-item'; 
+            d.textContent = t;
+            applyFontSize(d, t, type);
 
-            // onpointerdown を使ってラグなく反応させる
             d.onpointerdown = () => {
                 if(d.classList.contains('solved') || isWaitingForNext) return;
                 
-                // 英単語がクリックされた時は「即座に」読み上げ、効果音と被らせない
                 if (type === 'e') {
-                    speakWord(t);
+                    speakWord(d.textContent);
                 } else {
                     playSound('click');
                 }
@@ -1340,53 +1363,65 @@
                 
                 if(sEn && sJa) {
                     isWaitingForNext = true; 
-                    const match = currentSetWords.find(w => w.e === sEn.textContent && w.j === sJa.textContent);
+                    const match = sessionWords.find(w => w.e === sEn.textContent && w.j === sJa.textContent);
                     
                     if(match) {
                         sEn.classList.add('correct-match'); sJa.classList.add('correct-match');
                         chickReact('happy'); 
                         
+                        const curEn = sEn;
+                        const curJa = sJa;
+                        sEn = sJa = null;
+                        
                         setTimeout(() => {
-                            sEn.classList.add('solved'); sJa.classList.add('solved');
-                            sEn.classList.remove('correct-match', 'selected'); sJa.classList.remove('correct-match', 'selected');
+                            curEn.classList.add('solved'); curJa.classList.add('solved');
+                            curEn.classList.remove('correct-match', 'selected'); curJa.classList.remove('correct-match', 'selected');
                             
-                            solvedCount++; totalSolved++;
+                            totalSolved++;
                             document.getElementById('quiz-progress-bar').style.width = (totalSolved / 10 * 100) + "%";
                             
-                            if(solvedCount === 5) { 
-                                if (currentRound === 1) {
-                                    currentRound = 2;
-                                    setTimeout(() => loadSet(), 200);
+                            if(totalSolved === 10) { 
+                                playSound('clear'); 
+                                
+                                if (isReviewMode) {
+                                    xp += 5; 
+                                    document.getElementById('exp-display').textContent = xp + " XP";
+                                    showChickMessage(`復習クリア！ 5XPゲット！`, 2000);
+                                    saveData();
+                                    setTimeout(() => showPage('dictionary'), 600);
                                 } else {
-                                    playSound('clear'); 
-                                    
-                                    if (isReviewMode) {
-                                        xp += 5; 
-                                        document.getElementById('exp-display').textContent = xp + " XP";
-                                        showChickMessage(`復習クリア！ 5XPゲット！`, 2000);
-                                        saveData();
-                                        setTimeout(() => showPage('dictionary'), 600);
-                                    } else {
-                                        const gainedXp = xpRewards[curLevel] || 0;
-                                        xp += gainedXp;
-                                        document.getElementById('exp-display').textContent = xp + " XP";
-                                        showChickMessage(`クリア！ ${gainedXp}XPゲット！`, 2000);
-                                        levelProgress[curLevel][activeUnitIdx]++; 
-                                        saveData();
-                                        setTimeout(() => openSteps(curLevel), 600); 
-                                    }
+                                    const gainedXp = xpRewards[curLevel] || 0;
+                                    xp += gainedXp;
+                                    document.getElementById('exp-display').textContent = xp + " XP";
+                                    showChickMessage(`クリア！ ${gainedXp}XPゲット！`, 2000);
+                                    levelProgress[curLevel][activeUnitIdx]++; 
+                                    saveData();
+                                    setTimeout(() => openSteps(curLevel), 600); 
                                 }
                             } else {
-                                isWaitingForNext = false;
+                                const nextWord = wordQueue.shift();
+                                if (nextWord) {
+                                    setTimeout(() => {
+                                        curEn.textContent = nextWord.e;
+                                        applyFontSize(curEn, nextWord.e, 'e');
+                                        curJa.textContent = nextWord.j;
+                                        applyFontSize(curJa, nextWord.j, 'j');
+                                        
+                                        curEn.classList.remove('solved');
+                                        curJa.classList.remove('solved');
+                                        isWaitingForNext = false;
+                                    }, 250); 
+                                } else {
+                                    isWaitingForNext = false;
+                                }
                             }
-                            sEn = sJa = null;
                         }, 200);
 
                     } else {
                         sEn.classList.add('wrong-match'); sJa.classList.add('wrong-match');
                         chickReact('sad'); 
 
-                        const errorWord = currentSetWords.find(w => w.e === sEn.textContent);
+                        const errorWord = sessionWords.find(w => w.e === sEn.textContent);
                         if (errorWord && !wrongWords.some(w => w.e === errorWord.e)) {
                             wrongWords.push(errorWord);
                             saveData();
