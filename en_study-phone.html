@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -37,7 +38,7 @@
     .back-btn:active { transform: translateY(3px); border-bottom-width: 2px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); }
     .back-btn svg { fill: var(--text); width: 24px; height: 24px; }
 
-    /* レベル選択用 ボトムシートモーダル */
+    /* レベルジャンプ用 ボトムシートモーダル */
     .level-modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.6); display: none; align-items: flex-end;
@@ -56,7 +57,6 @@
     .level-modal-close { background: #334155; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; padding: 0; transition: 0.1s; }
     .level-modal-close:active { transform: scale(0.9); background: #475569; }
 
-    /* レベルカード */
     .level-card {
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px; border-radius: 16px; border: 3px solid; border-bottom-width: 6px;
@@ -66,12 +66,7 @@
     .level-card-info { display: flex; flex-direction: column; gap: 4px; text-align: left; }
     .level-card-title { font-size: 1.3rem; font-weight: 900; color: #fff; }
     .level-card-desc { font-size: 0.95rem; font-weight: bold; color: #94a3b8; }
-    .level-card-check { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; }
     
-    .level-card.active { background: rgba(56, 189, 248, 0.1); }
-    .level-card.active .level-card-title { color: #fff; }
-    .level-card.active .level-card-desc { color: rgba(255,255,255,0.7); }
-
     /* レッスン完了 中央ポップアップ */
     .lesson-clear-overlay { 
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -98,7 +93,7 @@
     .command-btn { padding: 14px 20px; border: none; border-bottom: 6px solid rgba(0,0,0,0.3); border-radius: 12px; color: white; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.1s; }
     .command-btn:active { transform: translateY(4px); border-bottom-width: 2px; margin-bottom: 4px; }
 
-    /* レベル選択用ヘッダー枠 */
+    /* 上部ヘッダー */
     .level-selector-wrapper {
       position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
       padding: 12px 15px 12px 15px;
@@ -111,7 +106,7 @@
       width: 100%; max-width: 450px; background: #38bdf8; border: 3px solid #0284c7; 
       border-bottom-width: 6px; border-radius: 20px; 
       padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; 
-      cursor: pointer; box-sizing: border-box; transition: all 0.1s; flex-shrink: 0; 
+      cursor: pointer; box-sizing: border-box; transition: background-color 0.3s, border-color 0.3s; flex-shrink: 0; 
       box-shadow: 0 8px 15px rgba(0,0,0,0.4);
       position: relative; z-index: 10;
     }
@@ -121,39 +116,67 @@
     .unit-header-title { font-size: 1.6rem; font-weight: 900; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.25); letter-spacing: 0.5px; }
     .unit-header-desc { font-size: 0.95rem; font-weight: 800; color: rgba(255, 255, 255, 0.9); }
     
-    .unit-header-btn { 
-      display: flex; align-items: center; justify-content: center; 
-      color: #ffffff; padding-right: 5px;
-    }
+    .unit-header-btn { display: flex; align-items: center; justify-content: center; color: #ffffff; padding-right: 5px; }
     .unit-header-btn svg { width: 34px; height: 34px; fill: currentColor; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.25)); }
+
+    /* セクション区切り（間隔調整済み） */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      width: 85%;
+      margin: 5px 0 10px 0; /* 余白を小さく */
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #94a3b8;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      letter-spacing: 2px;
+      z-index: 10;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background-color: #475569;
+      margin: 0 15px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
 
     /* 蛇行ユニット */
     .steps-wrapper { 
       display: flex; flex-direction: column; align-items: center; width: 100%; flex-grow: 1; 
-      /* 重ならないように、さらに余裕を持たせて上のpaddingを増やす */
-      padding: 140px 0 60px 0; 
+      padding: 110px 0 120px 0; gap: 30px; 
     }
-    .snake-row { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 30px; }
-    .step-unit { position: relative; width: 135px; height: 135px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; }
-    
-    .step-unit:nth-child(5n+1) { transform: translateX(0); }
-    .step-unit:nth-child(5n+2) { transform: translateX(-55px); }
-    .step-unit:nth-child(5n+3) { transform: translateX(0px); }
-    .step-unit:nth-child(5n+4) { transform: translateX(55px); }
-    .step-unit:nth-child(5n+5) { transform: translateX(0); }
+    .step-unit { 
+      position: relative; width: 120px; height: 120px; 
+      display: flex; align-items: center; justify-content: center; 
+      flex-shrink: 0; z-index: 2; transition: transform 0.3s;
+    }
 
     .progress-ring { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3)); }
     .ring-bg { fill: #1e293b; }
     .unit-button { 
-      position: relative; width: 95px; height: 95px; 
-      background-color: var(--primary); border-radius: 50%; 
+      position: relative; width: 85px; height: 85px; 
+      border-radius: 50%; 
       display: flex; align-items: center; justify-content: center; 
       cursor: pointer; box-shadow: 0 8px 0 rgba(0,0,0,0.25), 0 12px 15px rgba(0,0,0,0.4); 
       z-index: 10; border: none; transition: all 0.15s ease; 
     }
     .unit-button:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,0.25), 0 5px 8px rgba(0,0,0,0.4); }
-    .unit-button span { color: white; font-size: 2.8rem; font-weight: 900; text-shadow: 0 4px 0px rgba(0,0,0,0.25); }
-    .unit-button svg { width: 50px; height: 50px; fill: white; filter: drop-shadow(0 3px 0px rgba(0,0,0,0.25)); }
+    .unit-button span { color: white; font-size: 2.5rem; font-weight: 900; text-shadow: 0 4px 0px rgba(0,0,0,0.25); }
+    .unit-button svg { width: 45px; height: 45px; fill: white; filter: drop-shadow(0 3px 0px rgba(0,0,0,0.25)); }
+
+    /* ボトムナビゲーション */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 500px; height: 75px; background-color: var(--bg-dark);
+      border-top: 2px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100;
+    }
+    .nav-item { position: relative; width: 60px; height: 100%; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #64748b; transition: color 0.2s; }
+    .nav-item.active { color: #ffffff; }
+    .nav-icon-placeholder { width: 32px; height: 32px; fill: currentColor; object-fit: contain; }
+    .nav-indicator { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 0; height: 4px; background-color: #ffffff; border-radius: 4px; transition: width 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .nav-item.active .nav-indicator { width: 30px; }
 
     /* クイズ画面 */
     .quiz-title-area { margin-top: 35px; text-align: center; }
@@ -169,6 +192,14 @@
     .match-item.correct-match { background: #22c55e !important; border-color: #16a34a !important; transform: scale(1.05) translateY(-4px); border-bottom-width: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
     .match-item.wrong-match { background: #ef4444 !important; border-color: #b91c1c !important; animation: shake 0.4s ease-in-out; }
 
+    /* トグルスイッチ（設定画面用） */
+    .toggle-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border); transition: .3s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(26px); }
+
   </style>
 </head>
 
@@ -183,22 +214,20 @@
     <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
   </div>
 
-  <!-- レベル選択用 ボトムシートモーダル -->
+  <!-- レベルジャンプモーダル -->
   <div id="level-modal" class="level-modal">
     <div class="level-modal-content">
       <div class="level-modal-header">
-        <span class="level-modal-title">コースを選択</span>
+        <span class="level-modal-title">セクション</span>
         <button class="level-modal-close" onclick="closeLevelModal()">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
-      <div id="level-list" style="display: flex; flex-direction: column; gap: 10px;">
-        <!-- JSで動的に生成 -->
-      </div>
+      <div id="level-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
     </div>
   </div>
 
-  <!-- レッスン完了 中央ポップアップ -->
+  <!-- レッスン完了ポップアップ -->
   <div id="lesson-clear-overlay" class="lesson-clear-overlay">
     <div class="lesson-clear-box">
       <span style="font-size: 2.6rem; font-weight: 900; color: #ffffff; text-shadow: 0 4px 0 rgba(0,0,0,0.3); text-align: center; line-height: 1.4; letter-spacing: 2px;">レッスン<br>完了</span>
@@ -229,9 +258,8 @@
         </div>
       </div>
     </div>
-    <div class="steps-wrapper">
-      <div id="steps-list" style="width: 100%;"></div>
-    </div>
+    
+    <div class="steps-wrapper" id="steps-list"></div>
   </div>
 
   <!-- クイズ画面 -->
@@ -249,13 +277,74 @@
     </div>
   </div>
 
+  <!-- 設定画面 -->
+  <div id="settings-page" class="page">
+    <div style="margin-top: 40px; text-align: center; width: 100%;">
+      <h1 style="font-size: 2rem; font-weight: 900; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.3);">設定</h1>
+    </div>
+    <div style="width: 90%; max-width: 400px; margin-top: 30px; display: flex; flex-direction: column; gap: 20px;">
+      
+      <div style="background: var(--card-bg); padding: 20px; border-radius: 16px; border: 3px solid var(--border); border-bottom-width: 6px; display:flex; justify-content: space-between; align-items:center;">
+        <span style="font-weight: 900; font-size: 1.2rem; color: #f8fafc;">効果音</span>
+        <label class="toggle-switch">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div style="background: var(--card-bg); padding: 20px; border-radius: 16px; border: 3px solid var(--border); border-bottom-width: 6px; display:flex; justify-content: space-between; align-items:center;">
+        <span style="font-weight: 900; font-size: 1.2rem; color: #f8fafc;">BGM</span>
+        <label class="toggle-switch">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ボトムナビゲーション -->
+  <div id="bottom-nav" class="bottom-nav">
+    <div class="nav-item active" onclick="switchNavTab(this, 'steps')">
+      <div class="nav-indicator"></div>
+      <svg class="nav-icon-placeholder" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    </div>
+    
+    <div class="nav-item" onclick="switchNavTab(this, 'settings')">
+      <div class="nav-indicator"></div>
+      <svg class="nav-icon-placeholder" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    </div>
+  </div>
+
   <script>
     let speechWarmupDone = false, bgmStarted = false;
+    let audioCtx = null;
+    let audioUnlocked = false;
 
-    function initSpeech() {
+    function getAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // スマホ（iOS等）での音のロック解除用処理
+    function initAudio() {
+      if (!audioUnlocked) {
+        const ctx = getAudioCtx();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        audioUnlocked = true;
+      }
+
       if (!speechWarmupDone && 'speechSynthesis' in window) {
         const u = new SpeechSynthesisUtterance(''); u.volume = 0; window.speechSynthesis.speak(u);
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         speechWarmupDone = true;
       }
       if (!bgmStarted) {
@@ -263,20 +352,19 @@
         if (bgm) { bgm.volume = 0.2; bgm.play().then(() => { bgmStarted = true; }).catch(e => console.log(e)); }
       }
     }
-    document.addEventListener('touchstart', initSpeech, {once: true});
-    document.addEventListener('pointerdown', initSpeech, {once: true});
-    document.addEventListener('click', initSpeech, {once: true});
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
+    document.addEventListener('touchstart', initAudio, {once: true});
+    document.addEventListener('pointerdown', initAudio, {once: true});
+    document.addEventListener('click', initAudio, {once: true});
+
     function playSound(type) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const now = audioCtx.currentTime;
+      const ctx = getAudioCtx();
+      const now = ctx.currentTime;
       if (type === 'clear') {
         const notes =[523.25, 659.25, 783.99, 1046.50, 1567.98];
         notes.forEach((freq, i) => {
-          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-          o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; 
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination); o.type = 'sine'; 
           o.frequency.setValueAtTime(freq, now + i * 0.08);
           g.gain.setValueAtTime(0, now + i * 0.08);
           g.gain.linearRampToValueAtTime(0.15, now + i * 0.08 + 0.02);
@@ -285,8 +373,8 @@
         });
         return;
       }
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
       if(type === 'correct') { 
         o.type = 'sine'; o.frequency.setValueAtTime(659.25, now); o.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1);
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.15, now + 0.02); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
@@ -313,12 +401,31 @@
       }
     }
 
-    let curLevel = "入門", curPage = "steps";
+    function switchNavTab(element, tabId) {
+      if (element.classList.contains('active')) return;
+      playSound('click');
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      
+      if (tabId === 'steps') {
+        openSteps();
+      } else if (tabId === 'settings') {
+        showPage('settings');
+      }
+    }
+
+    let curPage = "steps";
+    let curLevel = "入門"; 
     let levelProgress = { "入門": Array(5).fill(0), "初級": Array(5).fill(0), "中級": Array(5).fill(0), "上級": Array(5).fill(0) };
     let lessonContinueCallback = null, quizStartTime = 0, quizMistakes = 0;
+    let savedScrollY = 0, isFirstLoad = true;
     
-    const colors = { "入門":"#38bdf8", "初級":"#22c55e", "中級":"#eab308", "上級":"#ef4444" };
-    const shadowColors = { "入門":"#0284c7", "初級":"#15803d", "中級":"#a16207", "上級":"#b91c1c" };
+    const levelInfos =[
+      { id: '入門', desc: '基本の単語を学ぼう', color: '#38bdf8', shadow: '#0284c7' },
+      { id: '初級', desc: '日常の単語を覚えよう', color: '#22c55e', shadow: '#16a34a' },
+      { id: '中級', desc: '表現の幅を広げよう', color: '#eab308', shadow: '#ca8a04' },
+      { id: '上級', desc: '難しい単語に挑戦！', color: '#ef4444', shadow: '#b91c1c' }
+    ];
 
     const dictionaryData = {
       "入門":[{e:"the",j:"その"},{e:"to",j:"～へ・～するために"},{e:"I",j:"私は"},{e:"a,an",j:"ひとつの"},{e:"in",j:"～の中に"},{e:"and",j:"そして・～と"},{e:"you",j:"あなたは"},{e:"is",j:"～です・ある"},{e:"of",j:"～の"},{e:"it",j:"それは"},{e:"have",j:"持っている・食べる"},{e:"not",j:"～でない"},{e:"was",j:"～だった"},{e:"that",j:"あれ・その・～ということ"},{e:"for",j:"～のために"},{e:"he",j:"彼は"},{e:"do",j:"する"},{e:"are",j:"～です・いる"},{e:"we",j:"私たちは"},{e:"about",j:"～について・およそ"},{e:"will",j:"～だろう・意志"},{e:"they",j:"彼らは"},{e:"people",j:"人々"},{e:"she",j:"彼女は"},{e:"at",j:"～で・～に"},{e:"can",j:"できる・缶"},{e:"my",j:"私の"},{e:"go",j:"行く"},{e:"with",j:"～と一緒に"},{e:"say",j:"言う"},{e:"but",j:"しかし"},{e:"on",j:"～の上に"},{e:"want",j:"欲しい"},{e:"when",j:"いつ・～の時"},{e:"there",j:"そこに"},{e:"this",j:"これ"},{e:"what",j:"何"},{e:"so",j:"だから・とても"},{e:"from",j:"～から"},{e:"her",j:"彼女の・彼女を"},{e:"his",j:"彼の"},{e:"think",j:"思う・考える"},{e:"did",j:"した(doの過去形)"},{e:"make",j:"作る"},{e:"very",j:"とても"},{e:"me",j:"私を・私に"},{e:"like",j:"好き・～のような"},{e:"see",j:"見る・会う"},{e:"many",j:"たくさんの"},{e:"one",j:"１つ・人"},{e:"because",j:"なぜなら"},{e:"them",j:"彼らを"},{e:"be",j:"～になる・ある"},{e:"some",j:"いくつかの"},{e:"how",j:"どのように"},{e:"school",j:"学校"},{e:"time",j:"時間・回"},{e:"your",j:"あなたの"},{e:"know",j:"知っている"},{e:"am",j:"～です・いる"},{e:"good",j:"良い"},{e:"get",j:"手に入れる・着く"},{e:"were",j:"～だった"},{e:"day",j:"日"},{e:"more",j:"もっと"},{e:"their",j:"彼らの"},{e:"thing",j:"もの・こと"},{e:"use",j:"使う"},{e:"as",j:"～として・～の時"},{e:"come",j:"来る"},{e:"other",j:"他の"},{e:"look",j:"見る・～に見える"},{e:"take",j:"取る・連れていく・（時間が）かかる"},{e:"year",j:"年"},{e:"by",j:"～によって・そばに"},{e:"our",j:"私たちの"},{e:"student",j:"生徒"},{e:"talk",j:"話す"},{e:"Mr.",j:"～さん(男性)"},{e:"all",j:"全ての"},{e:"English",j:"英語"},{e:"now",j:"今"},{e:"Japanese",j:"日本の・日本人・日本語"},{e:"find",j:"見つける・わかる"},{e:"if",j:"もし～なら"},{e:"tell",j:"教える・伝える"},{e:"him",j:"彼を"},{e:"yes",j:"はい"},{e:"after",j:"～の後で"},{e:"work",j:"仕事・働く"},{e:"or",j:"または"},{e:"who",j:"誰"},{e:"Japan",j:"日本"},{e:"first",j:"最初の"},{e:"lot",j:"たくさん"},{e:"could",j:"できた"},{e:"then",j:"その時・それから"},{e:"give",j:"与える"},{e:"learn",j:"学ぶ"},{e:"us",j:"私たちを"},{e:"help",j:"助ける"},{e:"also",j:"～もまた"},{e:"well",j:"上手に・健康な・ええと"},{e:"should",j:"すべきだ"},{e:"book",j:"本・予約する"},{e:"ask",j:"尋ねる・頼む"},{e:"friend",j:"友達"},{e:"play",j:"遊ぶ・演奏する"},{e:"than",j:"～よりも"},{e:"why",j:"なぜ"},{e:"too",j:"～も・あまりに～すぎる"},{e:"enjoy",j:"楽しむ"},{e:"study",j:"勉強する"},{e:"man",j:"男性"},{e:"old",j:"古い・年とった"},{e:"no",j:"いいえ・少しも～ない"},{e:"question",j:"質問"},{e:"way",j:"道・方法"},{e:"country",j:"国・田舎"},{e:"two",j:"２"},{e:"next",j:"次の"},{e:"food",j:"食べ物"},{e:"become",j:"～になる"},{e:"try",j:"試す・努力する"},{e:"read",j:"読む"},{e:"much",j:"多量の・ずっと"},{e:"new",j:"新しい"},{e:"thank",j:"感謝する"},{e:"live",j:"住む・生きる"},{e:"start",j:"始める・出発する"},{e:"happy",j:"幸せな"},{e:"right",j:"正しい・右"},{e:"really",j:"本当に"},{e:"child",j:"子供"},{e:"something",j:"何か"},{e:"world",j:"世界"},{e:"need",j:"必要とする"},{e:"important",j:"重要な"},{e:"long",j:"長い"},{e:"life",j:"生活・人生"},{e:"eat",j:"食べる"},{e:"up",j:"上へ"},{e:"which",j:"どちら・どれ"},{e:"only",j:"～だけ"},{e:"visit",j:"訪れる"},{e:"show",j:"見せる"},{e:"mother",j:"母"},{e:"every",j:"毎～"},{e:"last",j:"最後の・この前の"},{e:"home",j:"家・家庭"},{e:"high",j:"高い"},{e:"before",j:"～の前に"},{e:"father",j:"父"},{e:"picture",j:"写真・絵"},{e:"hear",j:"聞こえる"},{e:"family",j:"家族"},{e:"buy",j:"買う"},{e:"place",j:"場所"},{e:"would",j:"～だろう"},{e:"different",j:"違った"},{e:"class",j:"クラス・授業"},{e:"these",j:"これら"},{e:"does",j:"する(三人称単数)"},{e:"kind",j:"親切な・種類"},{e:"house",j:"家"},{e:"hard",j:"一生懸命・硬い・難しい"},{e:"idea",j:"考え"},{e:"oh",j:"ああ"},{e:"write",j:"書く"},{e:"feel",j:"感じる"},{e:"woman",j:"女性"},{e:"word",j:"単語・言葉"},{e:"around",j:"～の周りに"},{e:"call",j:"呼ぶ・電話する"},{e:"today",j:"今日"},{e:"here",j:"ここに"},{e:"just",j:"ちょうど・ただ～だけ"},{e:"better",j:"より良い"},{e:"back",j:"背中・後ろへ"},{e:"out",j:"外へ"},{e:"understand",j:"理解する"},{e:"each",j:"それぞれの"},{e:"please",j:"お願いします・喜ばせる"},{e:"Ms.",j:"～さん(女性)"},{e:"water",j:"水"},{e:"small",j:"小さい"},{e:"big",j:"大きい"},{e:"let",j:"～させる"},{e:"may",j:"～かもしれない・～してもよい"},{e:"three",j:"３"},{e:"problem",j:"問題"},{e:"most",j:"最も・大部分の"},{e:"always",j:"いつも"},{e:"walk",j:"歩く・散歩"},{e:"great",j:"偉大な・すごい"},{e:"answer",j:"答える・答え"},{e:"teacher",j:"先生"},{e:"game",j:"試合・ゲーム"},{e:"again",j:"再び"},{e:"city",j:"市・都会"},{e:"leave",j:"去る・残す"},{e:"into",j:"～の中へ"},{e:"often",j:"しばしば"},{e:"speak",j:"話す"},{e:"watch",j:"見る・腕時計"},{e:"keep",j:"保つ・飼う"},{e:"same",j:"同じ"},{e:"week",j:"週"},{e:"change",j:"変える・お釣り"},{e:"where",j:"どこに"},{e:"any",j:"いくつかの・どんな～も"},{e:"money",j:"お金"},{e:"morning",j:"朝"},{e:"beautiful",j:"美しい"},{e:"meet",j:"会う"},{e:"future",j:"将来"},{e:"animal",j:"動物"},{e:"interested",j:"興味がある"},{e:"OK",j:"大丈夫"},{e:"name",j:"名前"},{e:"interesting",j:"面白い"},{e:"best",j:"最も良い"},{e:"difficult",j:"難しい"},{e:"little",j:"小さい・ほとんどない"},{e:"example",j:"例"},{e:"room",j:"部屋"},{e:"job",j:"仕事"},{e:"stay",j:"滞在する"},{e:"put",j:"置く"},{e:"sure",j:"确信して・もちろん"},{e:"never",j:"決して～ない"},{e:"together",j:"一緒に"},{e:"practice",j:"練習する"},{e:"another",j:"もう一つの"},{e:"dog",j:"犬"},{e:"town",j:"町"},{e:"stop",j:"止める・止まる"},{e:"mean",j:"意味する"},{e:"month",j:"月(暦)"},{e:"decide",j:"決める"},{e:"run",j:"走る・経営する"},{e:"clean",j:"きれいな・掃除する"},{e:"teach",j:"教える"},{e:"team",j:"チーム"},{e:"station",j:"駅"},{e:"young",j:"若い"},{e:"move",j:"動く・感動させる・引っ越す"},{e:"even",j:"～でさえ"},{e:"begin",j:"始める"},{e:"hope",j:"望む"},{e:"join",j:"参加する・つなぐ"},{e:"over",j:"～を越えて・終わって"},{e:"night",j:"夜"},{e:"experience",j:"経験・経験する"},{e:"been",j:"beの過去分詞"},{e:"remember",j:"覚えている・思い出す"},{e:"bring",j:"持ってくる"},{e:"love",j:"愛する・大好き"},{e:"near",j:"近くに"},{e:"America",j:"アメリカ"},{e:"library",j:"図書館"},{e:"hi",j:"やあ"},{e:"ago",j:"～前に"},{e:"park",j:"公園・駐車する"},{e:"boy",j:"男の子"},{e:"shop",j:"店"},{e:"part",j:"部分・役割"},{e:"nice",j:"すてきな"},{e:"club",j:"クラブ"},{e:"such",j:"そのような"},{e:"train",j:"電車・訓練する"},{e:"member",j:"一員"},{e:"everyone",j:"誰でも"},{e:"sometimes",j:"時々"},{e:"during",j:"～の間"},{e:"grow",j:"成長する・育てる"},{e:"story",j:"物語・階"},{e:"foreign",j:"外国の"},{e:"mountain",j:"山"},{e:"number",j:"数"},{e:"bus",j:"バス"},{e:"summer",j:"夏"},{e:"minute",j:"分"},{e:"easy",j:"簡単な"},{e:"still",j:"まだ・静かな"},{e:"listen",j:"聞く"},{e:"popular",j:"人気のある"},{e:"hour",j:"時間(1時間)"},{e:"sound",j:"音・～のように聞こえる"},{e:"few",j:"ほとんどない・少数の"},{e:"soon",j:"すぐに"},{e:"however",j:"しかしながら"},{e:"sleep",j:"眠る"},{e:"girl",j:"女の子"},{e:"down",j:"下へ"},{e:"course",j:"進路・コース"},{e:"sorry",j:"ごめんなさい・残念な"},{e:"festival",j:"祭り"},{e:"lunch",j:"昼食"},{e:"high school",j:"高校"},{e:"send",j:"送る"},{e:"surprised",j:"驚いた"},{e:"own",j:"自分の・所有する"},{e:"those",j:"あれら"},{e:"scientist",j:"科学者"},{e:"later",j:"後で"},{e:"person",j:"人"},{e:"music",j:"音楽"},{e:"enough",j:"十分な"},{e:"brother",j:"兄・弟"},{e:"usually",j:"たいてい"},{e:"away",j:"離れて"},{e:"believe",j:"信じる"},{e:"finish",j:"終える"},{e:"hand",j:"手・渡す"},{e:"light",j:"光・軽い・明るい"},{e:"through",j:"～を通して"},{e:"while",j:"～の間・一方で"},{e:"without",j:"～なしで"},{e:"five",j:"５"},{e:"dream",j:"夢"},{e:"smile",j:"微笑む"},{e:"sport",j:"スポーツ"},{e:"car",j:"車"},{e:"earth",j:"地球・大地"},{e:"movie",j:"映画"},{e:"letter",j:"手紙・文字"},{e:"four",j:"４"},{e:"tree",j:"木"},{e:"happen",j:"起こる"},{e:"anything",j:"何か・何でも"},{e:"wait",j:"待つ"},{e:"parent",j:"親"},{e:"second",j:"２番目の・秒"},{e:"open",j:"開ける・開いている"},{e:"player",j:"選手・演奏者"},{e:"able",j:"できる"},{e:"its",j:"それの"},{e:"hello",j:"こんにちは"},{e:"museum",j:"博物館・美術館"},{e:"care",j:"世話・気にする"},{e:"language",j:"言語"},{e:"special",j:"特別の"},{e:"Australia",j:"オーストラリア"},{e:"information",j:"情報"},{e:"group",j:"集団"},{e:"must",j:"～しなければならない・～に違いない"},{e:"famous",j:"有名な"},{e:"tea",j:"お茶"},{e:"sister",j:"姉・妹"},{e:"large",j:"大きい"},{e:"soccer",j:"サッカー"},{e:"paper",j:"紙・新聞"},{e:"culture",j:"文化"},{e:"bad",j:"悪い"},{e:"hold",j:"持つ・開催する"},{e:"restaurant",j:"レストラン"},{e:"tomorrow",j:"明日"},{e:"lose",j:"失う・負ける"},{e:"Sunday",j:"日曜日"},{e:"both",j:"両方"},{e:"bag",j:"かばん"},{e:"birthday",j:"誕生日"},{e:"wonderful",j:"すばらしい"},{e:"plant",j:"植物・植える"},{e:"flower",j:"花"},{e:"front",j:"前"},{e:"trip",j:"旅行"},{e:"yesterday",j:"昨日"},{e:"someone",j:"誰か"},{e:"choose",j:"選ぶ"},{e:"space",j:"宇宙・空間"},{e:"song",j:"歌"},{e:"volunteer",j:"ボランティア"},{e:"turn",j:"回る・曲がる・順番"},{e:"history",j:"歴史"},{e:"event",j:"行事"},{e:"travel",j:"旅行する"},{e:"bird",j:"鳥"},{e:"worry",j:"心配する"},{e:"favorite",j:"お気に入りの"},{e:"river",j:"川"},{e:"bike",j:"自転車"},{e:"early",j:"早い"},{e:"robot",j:"ロボット"},{e:"activity",j:"活動"},{e:"sit",j:"座る"},{e:"drink",j:"飲む"},{e:"afternoon",j:"午後"},{e:"fast",j:"速い"},{e:"science",j:"科学"},{e:"grandfather",j:"祖父"},{e:"speech",j:"スピーチ"},{e:"sing",j:"歌う"},{e:"doctor",j:"医者"},{e:"since",j:"～以来・～なので"},{e:"strong",j:"強い"},{e:"sea",j:"海"},{e:"between",j:"～の間に"},{e:"useful",j:"役に立つ"},{e:"cannot",j:"できない"},{e:"sad",j:"悲しい"},{e:"company",j:"会社・仲間"},{e:"Saturday",j:"土曜日"},{e:"true",j:"本当の"},{e:"hospital",j:"病院"},{e:"point",j:"点・指さす"},{e:"party",j:"パーティー"},{e:"cook",j:"料理する・料理人"},{e:"human",j:"人間"},{e:"agree",j:"同意する"},{e:"dinner",j:"夕食"},{e:"computer",j:"コンピュータ"},{e:"cold",j:"寒い・風邪"},{e:"table",j:"テーブル"},{e:"eye",j:"目"},{e:"win",j:"勝つ"},{e:"ten",j:"１０"},{e:"almost",j:"ほとんど"},{e:"TV",j:"テレビ"},{e:"build",j:"建てる"},{e:"fly",j:"飛ぶ・ハエ"},{e:"tennis",j:"テニス"},{e:"wear",j:"着ている"},{e:"building",j:"建物"},{e:"sell",j:"売る"},{e:"off",j:"離れて・切れて"},{e:"American",j:"アメリカの・アメリカ人"},{e:"junior high school",j:"中学校"},{e:"homework",j:"宿題"},{e:"blue",j:"青"},{e:"energy",j:"エネルギー"},{e:"program",j:"番組・計画"},{e:"grandmother",j:"祖母"},{e:"glad",j:"うれしい"},{e:"plan",j:"計画・計画する"},{e:"classmate",j:"同級生"},{e:"spend",j:"費やす・過ごす"},{e:"body",j:"体"},{e:"color",j:"色"},{e:"internet",j:"インターネット"},{e:"break",j:"壊す・休憩"},{e:"until",j:"～まで"},{e:"fish",j:"魚・釣りをする"},{e:"message",j:"伝言"},{e:"mom",j:"ママ"},{e:"reason",j:"理由"},{e:"fun",j:"楽しみ"},{e:"carry",j:"運ぶ"},{e:"ever",j:"今までに・かつて"}],
@@ -327,33 +434,30 @@
       "上級":[{e:"professor",j:"教授"},{e:"tunnel",j:"トンネル"},{e:"swallow",j:"飲み込む・ツバメ"},{e:"empty",j:"空の"},{e:"fix",j:"修理する・固定する"},{e:"worse",j:"より悪い"},{e:"affect",j:"影響する"},{e:"comfortable",j:"心地よい"},{e:"phrase",j:"フレーズ・言葉遣い"},{e:"discovery",j:"発見"},{e:"advertisement",j:"広告"},{e:"focus",j:"焦点・集中させる"},{e:"master",j:"主人・習得する"},{e:"elevator",j:"エレベーター"},{e:"pop",j:"ポンと鳴る・飛び出る・大衆的な"},{e:"trick",j:"トリック・いたずら"},{e:"plain",j:"明白な・質素な・平原"},{e:"shell",j:"貝殻"},{e:"tower",j:"塔"},{e:"oil",j:"油"},{e:"asleep",j:"眠って"},{e:"silent",j:"静かな"},{e:"calm",j:"穏やかな"},{e:"behavior",j:"振る舞い"},{e:"source",j:"源・情報源"},{e:"passage",j:"通路・一節"},{e:"fisherman",j:"漁師"},{e:"necklace",j:"ネックレス"},{e:"powder",j:"粉"},{e:"Berlin",j:"ベルリン"},{e:"somewhere",j:"どこかに"},{e:"surprising",j:"驚くべき"},{e:"crop",j:"作物"},{e:"powerful",j:"強力な"},{e:"regular",j:"規則正しい・通常の"},{e:"African",j:"アフリカの"},{e:"hill",j:"丘"},{e:"anymore",j:"もはや（～ない）"},{e:"balance",j:"バランス"},{e:"success",j:"成功"},{e:"snake",j:"ヘビ"},{e:"Antarctica",j:"南極"},{e:"slate",j:"スレート・石版・候補者名簿"},{e:"vote",j:"投票する"},{e:"bride",j:"花嫁"},{e:"wheelchair",j:"車椅子"},{e:"cousin",j:"いとこ"},{e:"disappointed",j:"がっかりした"},{e:"pair",j:"一対"},{e:"pink",j:"ピンク"},{e:"square",j:"正方形・広場"},{e:"development",j:"発展・開発"},{e:"gesture",j:"身振り"},{e:"partner",j:"パートナー"},{e:"personal",j:"個人の"},{e:"Singapore",j:"シン交ポール"},{e:"pond",j:"池"},{e:"sail",j:"航海する・帆"},{e:"zone",j:"地帯"},{e:"logic",j:"論理"},{e:"injure",j:"傷つける"},{e:"sixty",j:"６0"},{e:"below",j:"～の下に"},{e:"finger",j:"指"},{e:"noon",j:"正午"},{e:"electric",j:"電気の"},{e:"everywhere",j:"どこでも"},{e:"relate",j:"関連づける"},{e:"wet",j:"濡れた"},{e:"disaster",j:"災害"},{e:"original",j:"元の・独創的な"},{e:"panda",j:"パンダ"},{e:"rabbit",j:"ウサギ"},{e:"racket",j:"ラケット・騒音"},{e:"score",j:"得点"},{e:"apply",j:"申し込む・適用する"},{e:"manner",j:"マナー・方法"},{e:"pool",j:"プール"},{e:"cage",j:"かご・檻"},{e:"creative",j:"創造的な"},{e:"sale",j:"販売・特売"},{e:"trash",j:"ゴミ"},{e:"therapy",j:"療法"},{e:"author",j:"著者"},{e:"happily",j:"幸せに"},{e:"direction",j:"方向・指示"},{e:"sand",j:"砂"},{e:"total",j:"合計の・完全な"},{e:"brown",j:"茶色"},{e:"courage",j:"勇気"},{e:"drama",j:"ドラマ・演劇"},{e:"housework",j:"家事"},{e:"mix",j:"混ぜる"},{e:"trust",j:"信頼する"},{e:"bite",j:"噛む"},{e:"economy",j:"経済"},{e:"medical",j:"医学の"},{e:"polite",j:"礼儀正しい"},{e:"curry",j:"カレー"},{e:"female",j:"女性の・メス"},{e:"interviewer",j:"面接官"},{e:"fuel",j:"燃料"},{e:"cave",j:"洞窟"},{e:"gun",j:"銃"},{e:"shark",j:"サメ"},{e:"originally",j:"元来は"},{e:"forever",j:"永遠に"},{e:"track",j:"トラック・跡"},{e:"mile",j:"マイル"},{e:"thick",j:"厚い"},{e:"homeroom",j:"ホームルーム"},{e:"United Kingdom",j:"イギリス(連合王国)"},{e:"value",j:"価値"},{e:"charity",j:"慈善"},{e:"rescue",j:"救助する"},{e:"stranger",j:"見知らぬ人"},{e:"gray",j:"灰色"},{e:"quarter",j:"４分の１"},{e:"scissors",j:"はさみ"},{e:"crow",j:"カラス"},{e:"comma",j:"コンマ"},{e:"trade",j:"貿易"},{e:"weight",j:"重さ"},{e:"celebrate",j:"祝う"},{e:"deliver",j:"配達する"},{e:"Paris",j:"パリ"},{e:"suggest",j:"提案する"},{e:"big",j:"大きい"},{e:"shift",j:"移る・交替"},{e:"storm",j:"嵐"},{e:"prefecture",j:"県"},{e:"tail",j:"尻尾"},{e:"couple",j:"カップル・一対"},{e:"cicada",j:"セミ"},{e:"fifth",j:"５番目の"},{e:"spot",j:"場所・斑点"},{e:"base",j:"土台・基地"},{e:"habit",j:"習慣"},{e:"central",j:"中心の"},{e:"comment",j:"コメント"},{e:"intelligent",j:"知的な"},{e:"knife",j:"ナイフ"},{e:"Miss",j:"～さん(未婚女性)・失敗する"},{e:"remain",j:"残る"},{e:"Roman",j:"ローマの"},{e:"chain",j:"鎖・チェーン店"},{e:"dolphin",j:"イルカ"},{e:"private",j:"私的な"},{e:"album",j:"アルバム"},{e:"dancer",j:"ダンサー"},{e:"ghost",j:"幽霊"},{e:"merchant",j:"商人"},{e:"Venus",j:"金星・ビーナス"},{e:"kitten",j:"子猫"},{e:"rain forest",j:"熱帯雨林"},{e:"yeah",j:"うん・イェーイ"},{e:"Spanish",j:"スペインの・スペイン語"},{e:"crowded",j:"混雑した"},{e:"beat",j:"打つ・打ち負かす"},{e:"belong",j:"所属する"},{e:"certainly",j:"確かに"},{e:"bit",j:"少し"},{e:"compare",j:"比較する"},{e:"board",j:"板・搭乗する・委員会"},{e:"Italy",j:"イタリア"},{e:"nest",j:"巣"},{e:"positive",j:"前向きな・肯定的な"},{e:"postcard",j:"絵葉書"},{e:"spirit",j:"精神・魂"},{e:"separate",j:"分ける・別々の"},{e:"succeed",j:"成功する"},{e:"cure",j:"治療する"},{e:"image",j:"画像・イメージ"},{e:"novel",j:"小説・斬新な"},{e:"sight",j:"視力・光景"},{e:"danger",j:"危険"},{e:"loss",j:"損失・敗北"},{e:"slave",j:"奴隷"},{e:"theme",j:"テーマ"},{e:"risk",j:"リスク"},{e:"camel",j:"ラクダ"},{e:"anywhere",j:"どこでも"},{e:"attract",j:"引きつける"},{e:"brush",j:"ブラシ・磨く"},{e:"repeat",j:"繰り返す"},{e:"engine",j:"エンジン"},{e:"cloth",j:"布"},{e:"sunlight",j:"日光"},{e:"mystery",j:"神秘・謎"},{e:"nut",j:"木の実"},{e:"bulb",j:"電球・球根"},{e:"principal",j:"校長・主要な"},{e:"calculate",j:"計算する"},{e:"colony",j:"植民地"},{e:"menu",j:"メニュー"},{e:"lift",j:"持ち上げる・エレベーター"},{e:"Asian",j:"アジアの"},{e:"Australian",j:"オーストラリアの"},{e:"cultural",j:"文化的な"},{e:"directly",j:"直接に"},{e:"neck",j:"首"},{e:"block",j:"ブロック・妨げる"},{e:"golden",j:"金色の"},{e:"hometown",j:"故郷"},{e:"beauty",j:"美しさ"},{e:"collection",j:"収集"},{e:"hunt",j:"狩る"},{e:"limit",j:"制限・限界"},{e:"nearly",j:"ほとんど"},{e:"pack",j:"包む・パック"},{e:"agriculture",j:"農業"},{e:"diary",j:"日記"},{e:"impact",j:"衝撃・影響"},{e:"media",j:"メディア"},{e:"painter",j:"画家"},{e:"panel",j:"パネル"},{e:"web",j:"ウェブ・クモの巣"},{e:"assistance",j:"援助"},{e:"onto",j:"～の上へ"},{e:"therefore",j:"それゆえに"},{e:"slide",j:"スライド・滑る"},{e:"text",j:"本文・テキスト"},{e:"film",j:"映画・フィルム"},{e:"Finland",j:"フィンランド"},{e:"major",j:"主要な"},{e:"cafeteria",j:"カフェテリア"},{e:"satisfy",j:"満足させる"},{e:"climate",j:"気候"},{e:"kick",j:"蹴る"},{e:"shoulder",j:"肩"},{e:"towel",j:"タオル"},{e:"alive",j:"生きている"},{e:"basic",j:"基本的な"},{e:"extra",j:"追加の・余分の"},{e:"foreigner",j:"外国人"},{e:"avoid",j:"避ける"},{e:"European",j:"ヨーロッパの"},{e:"unhappy",j:"不幸な"},{e:"breathe",j:"呼吸する"},{e:"physical",j:"身体の・物理的な"},{e:"sixteen",j:"１６"},{e:"traveler",j:"旅行者"},{e:"violin",j:"バイオリン"},{e:"yard",j:"庭・ヤード"},{e:"connection",j:"つながり"},{e:"exam",j:"試験"},{e:"fortune",j:"運・財産"},{e:"monkey",j:"サル"},{e:"male",j:"男性の・オス"},{e:"online",j:"オンラインの"},{e:"safely",j:"安全に"},{e:"campaign",j:"キャンペーン"},{e:"region",j:"地域"},{e:"exhibition",j:"展示"},{e:"force",j:"力・強制する"},{e:"sticky",j:"べたつく"},{e:"grandparent",j:"祖父母"},{e:"cream",j:"クリーム"},{e:"knock",j:"ノックする"},{e:"wooden",j:"木製の"},{e:"plate",j:"皿"},{e:"thirteen",j:"１３"},{e:"winner",j:"勝者"},{e:"explanation",j:"説明"},{e:"hero",j:"英雄"},{e:"environmental",j:"環境の"},{e:"escape",j:"逃げる"},{e:"tiny",j:"とても小さい"},{e:"benefit",j:"利益・恩恵"},{e:"fail",j:"失敗する"},{e:"pilot",j:"パイロット"},{e:"rather",j:"かなり・むしろ"},{e:"route",j:"ルート・道"},{e:"sensor",j:"センサー"},{e:"bakery",j:"パン屋"},{e:"operation",j:"手術・操作"},{e:"craft",j:"工芸・船"},{e:"dust",j:"ほこり"},{e:"pie",j:"パイ"},{e:"term",j:"期間・用語"},{e:"wine",j:"ワイン"},{e:"volcano",j:"火山"},{e:"bubble",j:"泡"},{e:"printer",j:"プリンター"},{e:"beside",j:"～のそばに"},{e:"birth",j:"誕生"},{e:"degree",j:"学位・程度・度"},{e:"lay",j:"横たえる・置く"},{e:"lend",j:"貸す"},{e:"official",j:"公式の"},{e:"approach",j:"近づく・取り組み"},{e:"float",j:"浮く"},{e:"include",j:"含む"},{e:"photograph",j:"写真"},{e:"branch",j:"枝・支店"},{e:"discussion",j:"議論"},{e:"waiter",j:"ウェイター"},{e:"handmade",j:"手作りの"},{e:"shelter",j:"避難所"},{e:"signal",j:"信号・合図"},{e:"trumpet",j:"トランペット"},{e:"drill",j:"ドリル・訓練"},{e:"hurricane",j:"ハリケーン"},{e:"brave",j:"勇敢な"},{e:"deeply",j:"深く"},{e:"fourteen",j:"１４"},{e:"remove",j:"取り除く"},{e:"blow",j:"吹く"},{e:"apartment",j:"アパート"},{e:"audience",j:"聴衆"},{e:"corn",j:"トウモロコシ"},{e:"ourselves",j:"私たち自身"},{e:"recent",j:"最近の"},{e:"worst",j:"最悪の"},{e:"Dutch",j:"オランダの"},{e:"grain",j:"穀物"},{e:"lemon",j:"レモン"},{e:"refuse",j:"拒否する・ゴミ"},{e:"arrange",j:"手配する・整える"},{e:"cafe",j:"カフェ"},{e:"fence",j:"柵"},{e:"greenhouse",j:"温室"},{e:"organization",j:"組織"},{e:"inch",j:"インチ"},{e:"none",j:"誰も～ない"},{e:"purse",j:"財布"},{e:"fee",j:"料金"},{e:"horn",j:"角・警笛"},{e:"exploration",j:"探検"},{e:"refugee",j:"難民"},{e:"colorful",j:"カラフルな"},{e:"bar",j:"棒・酒場"},{e:"disagree",j:"同意しない"},{e:"Italian",j:"イタリアの・イタリア人"},{e:"roof",j:"屋根"},{e:"German",j:"ドイツの・ドイツ人"},{e:"title",j:"タイトル"},{e:"chef",j:"シェフ"},{e:"equal",j:"平等な・等しい"},{e:"honest",j:"正直な"},{e:"impression",j:"印象"},{e:"population",j:"人口"},{e:"reporter",j:"記者"},{e:"salad",j:"サラダ"},{e:"single",j:"独身の・たった１つの"},{e:"bend",j:"曲げる"},{e:"emergency",j:"緊急事態"},{e:"likely",j:"ありそうな"},{e:"reuse",j:"再利用する"},{e:"shelf",j:"棚"},{e:"string",j:"ひも"},{e:"tube",j:"管・チューブ"},{e:"award",j:"賞"},{e:"globe",j:"地球・球体"},{e:"tray",j:"お盆"},{e:"aquarium",j:"水族館"},{e:"calligraphy",j:"書道"},{e:"laughter",j:"笑い"},{e:"unit",j:"単位"},{e:"clay",j:"粘土"},{e:"mascot",j:"マスコット"},{e:"riddle",j:"なぞなぞ"},{e:"input",j:"入力"},{e:"wizard",j:"魔法使い"},{e:"manager",j:"経営者・マネージャー"},{e:"chicken",j:"鶏肉・ニワトリ"},{e:"hunting",j:"狩り"},{e:"pleasure",j:"喜び"},{e:"stomach",j:"胃"},{e:"confuse",j:"混乱させる"},{e:"eighteen",j:"１８"},{e:"final",j:"最後の"},{e:"smoke",j:"煙・喫煙する"},{e:"advantage",j:"利点"},{e:"bake",j:"焼く"},{e:"flow",j:"流れる"},{e:"native",j:"母国の・その土地固有の"},{e:"pattern",j:"模様"},{e:"designer",j:"デザイナー"},{e:"resource",j:"资源"},{e:"rocket",j:"ロケット"},{e:"steam",j:"蒸気"},{e:"Thailand",j:"タイ"},{e:"weed",j:"雑草"},{e:"ban",j:"禁止する"},{e:"carbon",j:"炭素"},{e:"consider",j:"熟考する"},{e:"hang",j:"掛ける・吊るす"},{e:"mayor",j:"市長"},{e:"observe",j:"観察する・守る"},{e:"Hawaiian",j:"ハワイの"},{e:"mosquito",j:"蚊"},{e:"candle",j:"ろうそく"},{e:"complain",j:"文句を言う"},{e:"discuss",j:"議論する"},{e:"embarrassed",j:"恥ずかしい"},{e:"flat",j:"平らな・アパート"},{e:"including",j:"～を含めて"},{e:"jacket",j:"ジャケット"},{e:"match",j:"試合・調和する・マッチ"},{e:"button",j:"ボタン"},{e:"liter",j:"リットル"},{e:"seriously",j:"真面目に・深刻に"},{e:"sir",j:"あなた(男性への敬称)"},{e:"worth",j:"価値がある"},{e:"copy",j:"写す・コピー"},{e:"display",j:"展示する"},{e:"Greek",j:"ギリシャの"},{e:"heaven",j:"天国"},{e:"medal",j:"メダル"},{e:"fit",j:"合う・適した"},{e:"instrument",j:"器具・楽器"},{e:"Korean",j:"韓国の・韓国語"},{e:"shower",j:"シャワー"},{e:"sidewalk",j:"歩道"},{e:"supply",j:"供給する"},{e:"cleanup",j:"大掃除"},{e:"operate",j:"操作する・手術する"},{e:"rainbow",j:"虹"},{e:"lane",j:"車線・小道"},{e:"silk",j:"絹"},{e:"telescope",j:"望遠鏡"},{e:"ambulance",j:"救急車"},{e:"yawn",j:"あくび"},{e:"hey",j:"やあ"},{e:"itself",j:"それ自身"},{e:"industry",j:"産業"},{e:"advance",j:"進歩・前進する"},{e:"divide",j:"分ける"},{e:"bark",j:"吠える・木の皮"},{e:"prefer",j:"～の方を好む"},{e:"hobby",j:"趣味"},{e:"muscle",j:"筋肉"},{e:"noodle",j:"麺"},{e:"quick",j:"速い"},{e:"bathroom",j:"浴室・トイレ"},{e:"decrease",j:"減る・減らす"},{e:"difficulty",j:"困难"},{e:"gram",j:"グラム"},{e:"recognize",j:"認識する・認める"},{e:"bat",j:"コウモリ・バット"},{e:"brass band",j:"ブラスバンド"},{e:"effective",j:"効果的な"},{e:"mostly",j:"たいてい"},{e:"orchestra",j:"オーケストラ"},{e:"personality",j:"個性・性格"},{e:"Pacific",j:"太平洋の"},{e:"pupil",j:"生徒・瞳"}]
     };
 
-    const levelInfos =[
-      { id: '入門', desc: '基本の単語を学ぼう', color: '#38bdf8', shadow: '#0284c7' },
-      { id: '初級', desc: '日常の単語を覚えよう', color: '#22c55e', shadow: '#16a34a' },
-      { id: '中級', desc: '表現の幅を広げよう', color: '#eab308', shadow: '#ca8a04' },
-      { id: '上級', desc: '難しい単語に挑戦！', color: '#ef4444', shadow: '#b91c1c' }
-    ];
-
     function loadData() {
       const saved = localStorage.getItem('englishAppSaveMobile');
       if (saved) {
         try {
           const data = JSON.parse(saved);
           if (data.levelProgress) levelProgress = data.levelProgress;
-          if (data.curLevel) curLevel = data.curLevel;
         } catch (e) { console.error(e); }
       }
-      for (const lv in dictionaryData) { if (!levelProgress[lv] || !Array.isArray(levelProgress[lv])) levelProgress[lv] = Array(5).fill(0); }
+      for (const lv in dictionaryData) { 
+        if (!levelProgress[lv] || !Array.isArray(levelProgress[lv])) {
+            levelProgress[lv] = Array(5).fill(0); 
+        } else if (levelProgress[lv].length > 5) {
+            levelProgress[lv] = levelProgress[lv].slice(0, 5);
+        }
+      }
     }
 
     function saveData() {
-      const data = { levelProgress, curLevel };
+      const data = { levelProgress };
       localStorage.setItem('englishAppSaveMobile', JSON.stringify(data));
     }
 
     function fireConfetti() {
-      const container = document.createElement('div');
-      container.id = 'confetti-container';
+      const container = document.createElement('div'); container.id = 'confetti-container';
       container.style.position = 'fixed'; container.style.top = '0'; container.style.left = '0';
       container.style.width = '100%'; container.style.height = '100%';
       container.style.pointerEvents = 'none'; container.style.zIndex = '2100'; 
@@ -369,8 +473,7 @@
           conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
           conf.style.position = 'absolute'; conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
           const isLeft = i % 2 === 0;
-          const startX = isLeft ? 50 : window.innerWidth - 50;
-          const startY = window.innerHeight - 50;
+          const startX = isLeft ? 50 : window.innerWidth - 50; const startY = window.innerHeight - 50;
           conf.style.left = startX + 'px'; conf.style.top = startY + 'px';
           container.appendChild(conf);
 
@@ -393,22 +496,36 @@
     function showPage(id) {
       const targetPage = document.getElementById(id + '-page');
       if (!targetPage) return;
+      
+      if (curPage === 'steps' && id !== 'steps') {
+        savedScrollY = window.scrollY;
+      }
+
       if(curPage !== id && id !== 'quiz') { playSound('click'); }
       curPage = id;
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
       targetPage.classList.add('active-page');
       
+      const bottomNav = document.getElementById('bottom-nav');
+      if (bottomNav) bottomNav.style.display = (id === 'quiz') ? 'none' : 'flex';
+
       const b = document.getElementById('back-btn'); 
       if (id === 'quiz') { 
         b.classList.add('back-btn-show'); 
+        window.scrollTo(0,0); 
       } else { 
         b.classList.remove('back-btn-show'); 
+        if (id === 'steps') {
+          window.scrollTo(0, savedScrollY);
+        } else {
+          window.scrollTo(0, 0); 
+        }
       }
-      window.scrollTo(0,0);
     }
 
     function handleBack() { 
-      playSound('click'); openSteps(curLevel);
+      playSound('click'); 
+      openSteps(); 
     }
 
     function handleLessonContinue() {
@@ -428,18 +545,12 @@
       const listEl = document.getElementById('level-list');
       listEl.innerHTML = '';
       levelInfos.forEach(info => {
-        const isActive = curLevel === info.id;
         const card = document.createElement('div');
-        card.className = `level-card ${isActive ? 'active' : ''}`;
-        if(isActive) { card.style.borderColor = info.color; card.style.borderBottomColor = info.shadow; }
-        
+        card.className = `level-card`;
         card.innerHTML = `
           <div class="level-card-info">
             <span class="level-card-title">${info.id}</span>
             <span class="level-card-desc">${info.desc}</span>
-          </div>
-          <div class="level-card-check" style="${isActive ? '' : 'border: 3px solid var(--border);'}">
-            ${isActive ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="var(--primary)"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>' : ''}
           </div>
         `;
         card.onclick = () => selectLevel(info.id);
@@ -458,60 +569,119 @@
     
     function selectLevel(lv) {
       playSound('click'); closeLevelModal();
-      if (curLevel !== lv) { curLevel = lv; saveData(); openSteps(lv); }
+      const target = document.querySelector(`.step-unit[data-level="${lv}"]`);
+      if(target) {
+        const y = target.getBoundingClientRect().top + window.scrollY - 150;
+        window.scrollTo({top: y, behavior: 'smooth'});
+        savedScrollY = y;
+      }
     }
 
-    function openSteps(lv) {
-      curLevel = lv;
-      if (!levelProgress[lv] || !Array.isArray(levelProgress[lv])) levelProgress[lv] = Array(5).fill(0);
-      
-      const lvColor = colors[lv] || '#38bdf8';
-      const lvShadow = shadowColors[lv] || '#0284c7';
-      
-      const btn = document.getElementById('level-selector-btn');
-      document.getElementById('current-level-text').textContent = lv;
-      
-      const descMap = { "入門": "基本の単語を学ぼう", "初級": "日常の単語を覚えよう", "中級": "表現の幅を広げよう", "上級": "難しい単語に挑戦！" };
-      const descEl = document.getElementById('current-level-desc');
-      if (descEl) descEl.textContent = descMap[lv] || "レベルを変更する";
+    function openSteps() {
+      const list = document.getElementById('steps-list');
+      list.innerHTML = "";
 
-      btn.style.backgroundColor = lvColor; btn.style.borderColor = lvShadow;
+      if(window.levelObserver) window.levelObserver.disconnect();
+      window.levelObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const lvId = entry.target.dataset.level;
+            const info = levelInfos.find(i => i.id === lvId);
+            if (info) {
+              document.getElementById('current-level-text').textContent = info.id;
+              document.getElementById('current-level-desc').textContent = info.desc;
+              const btn = document.getElementById('level-selector-btn');
+              btn.style.backgroundColor = info.color;
+              btn.style.borderColor = info.shadow;
+            }
+          }
+        });
+      }, { rootMargin: "-30% 0px -70% 0px" });
 
-      const list = document.getElementById('steps-list'); list.innerHTML = "";
-      const row = document.createElement('div'); row.className = 'snake-row'; list.appendChild(row);
-      
-      for(let i=0; i<5; i++) {
-        const unit = document.createElement('div'); unit.className = 'step-unit';
-        const currentProg = levelProgress[lv][i] || 0;
-        const prog = currentProg % 5 === 0 && currentProg > 0 ? 5 : currentProg % 5;
-        const cycles = Math.floor(currentProg / 5);
-        const icon = i === 0 ? `<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>` : `<span>${i+1}</span>`;
+      let firstUnfinishedUnit = null; 
+      let globalUnitIndex = 0; 
 
-        let ringHtml = `<svg class="progress-ring" viewBox="0 0 160 160"><circle class="ring-bg" cx="80" cy="80" r="72" stroke="none" />`;
-        const r = 72, c = 2 * Math.PI * r, gap = 20, dash = c / 5 - gap, remain = c - dash;
-
-        for(let j=0; j<5; j++) {
-          const isCleared = cycles > 0 || j < prog;
-          const color = isCleared ? lvColor : '#334155';
-          const angle = -90 + (j * 72) + ((gap / c) * 360 / 2);
-          ringHtml += `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${dash} ${remain}" transform="rotate(${angle} 80 80)" style="cursor:pointer; transition: all 0.2s; pointer-events: stroke;" onpointerdown="playSpecificSet(${i}, ${j}, ${isCleared})" />`;
-        }
-        ringHtml += `</svg>`;
+      levelInfos.forEach((info, index) => {
+        const lv = info.id;
         
-        unit.innerHTML = `${ringHtml}<button class="unit-button" style="background:${lvColor}" onclick="startQuiz(${i})">${icon}</button>`;
-        row.appendChild(unit);
-      }
+        const anchor = document.createElement('div');
+        anchor.id = 'section-' + lv;
+        list.appendChild(anchor);
+
+        const divider = document.createElement('div');
+        divider.className = 'section-divider';
+        divider.innerHTML = `<span>${lv}</span>`;
+        list.appendChild(divider);
+
+        for(let i=0; i<5; i++) {
+          const unit = document.createElement('div'); unit.className = 'step-unit';
+          
+          if (i === 0) {
+            unit.dataset.level = lv;
+            window.levelObserver.observe(unit);
+          }
+
+          const progress = globalUnitIndex / 19; 
+          const offsetX = Math.sin(progress * Math.PI * 5) * 90;
+          
+          unit.style.transform = `translateX(${offsetX}px)`;
+          globalUnitIndex++;
+
+          const currentProg = levelProgress[lv][i] || 0;
+          const prog = currentProg % 5 === 0 && currentProg > 0 ? 5 : currentProg % 5;
+          const cycles = Math.floor(currentProg / 5);
+          const isFullCleared = cycles > 0 || prog === 5;
+          
+          const icon = i === 0 ? `<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>` : `<span>${i+1}</span>`;
+
+          let ringHtml = `<svg class="progress-ring" viewBox="0 0 160 160"><circle class="ring-bg" cx="80" cy="80" r="72" stroke="none" />`;
+          const r = 72, c = 2 * Math.PI * r, gap = 20, dash = c / 5 - gap, remain = c - dash;
+
+          for(let j=0; j<5; j++) {
+            const isCleared = cycles > 0 || j < prog;
+            const ringColor = isCleared ? info.color : '#334155';
+            const angle = -90 + (j * 72) + ((gap / c) * 360 / 2);
+            ringHtml += `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${ringColor}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${dash} ${remain}" transform="rotate(${angle} 80 80)" style="cursor:pointer; transition: all 0.2s; pointer-events: stroke;" onpointerdown="playSpecificSet('${lv}', ${i}, ${j}, ${isCleared})" />`;
+          }
+          ringHtml += `</svg>`;
+          
+          unit.innerHTML = `${ringHtml}<button class="unit-button" style="background:${info.color}; border-bottom: 6px solid ${info.shadow};" onclick="startQuiz('${lv}', ${i})">${icon}</button>`;
+          
+          if (!firstUnfinishedUnit && !isFullCleared) {
+            firstUnfinishedUnit = unit;
+          }
+
+          list.appendChild(unit);
+        }
+      });
+      
       showPage('steps');
+
+      if (isFirstLoad) {
+        setTimeout(() => {
+          if (firstUnfinishedUnit) {
+            const y = firstUnfinishedUnit.getBoundingClientRect().top + window.scrollY - (window.innerHeight / 2) + 65;
+            window.scrollTo({top: y, behavior: 'auto'});
+            savedScrollY = window.scrollY;
+          }
+          isFirstLoad = false;
+        }, 50);
+      } else {
+        window.scrollTo(0, savedScrollY);
+      }
     }
 
     let activeUnitIdx = 0, sessionWords =[], wordQueue =[], sEn = null, sJa = null, totalSolved = 0, isSpecificReview = false; 
 
-    function startQuiz(unitIdx) { 
-      playSound('click'); isSpecificReview = false; activeUnitIdx = unitIdx; totalSolved = 0;
+    function startQuiz(lv, unitIdx) { 
+      playSound('click'); 
+      curLevel = lv; 
+      isSpecificReview = false; activeUnitIdx = unitIdx; totalSolved = 0;
       quizStartTime = Date.now(); quizMistakes = 0;
-      let currentProg = levelProgress[curLevel][unitIdx] || 0;
+      
+      let currentProg = levelProgress[lv][unitIdx] || 0;
       let prog = currentProg % 5, isUnitCleared = currentProg >= 5;
-      let pool = dictionaryData[curLevel] || dictionaryData["入門"];
+      let pool = dictionaryData[lv] || dictionaryData["入門"];
       
       if (isUnitCleared) {
         let startIndex = unitIdx * 90;
@@ -530,14 +700,18 @@
       loadSet(); showPage('quiz'); 
     }
 
-    function playSpecificSet(unitIdx, subIdx, isCleared) {
+    function playSpecificSet(lv, unitIdx, subIdx, isCleared) {
       if (!isCleared) return; 
       
-      playSound('click'); isSpecificReview = true; activeUnitIdx = unitIdx; totalSolved = 0;
+      playSound('click'); 
+      curLevel = lv; 
+      isSpecificReview = true; activeUnitIdx = unitIdx; totalSolved = 0;
       quizStartTime = Date.now(); quizMistakes = 0;
-      let pool = dictionaryData[curLevel] || dictionaryData["入門"];
+      
+      let pool = dictionaryData[lv] || dictionaryData["入門"];
       let offset = (unitIdx * 90) + (subIdx * 18);
       sessionWords = pool.slice(offset, offset + 18);
+      
       if (sessionWords.length < 18) {
         let remain = 18 - sessionWords.length; sessionWords = sessionWords.concat(pool.slice(0, remain));
       }
@@ -547,12 +721,16 @@
     function loadSet() {
       sEn = sJa = null; wordQueue =[...sessionWords];
       const headerEl = document.getElementById('quiz-header');
-      const color = colors[curLevel] || '#38bdf8';
+      const info = levelInfos.find(i => i.id === curLevel);
+      const color = info ? info.color : '#38bdf8';
 
       if (isSpecificReview) { headerEl.innerHTML = `<span style="color: ${color};">${curLevel}</span> <span style="color: #ffffff;">復習</span>`; } 
       else { headerEl.innerHTML = `<span style="color: ${color};">${curLevel}</span> <span style="color: #ffffff;">Unit ${activeUnitIdx+1}</span>`; }
 
-      document.getElementById('quiz-progress-bar').style.width = "0%";
+      const progFill = document.getElementById('quiz-progress-bar');
+      progFill.style.width = "0%";
+      progFill.style.backgroundColor = color;
+
       const enC = document.getElementById('col-en'); const jaC = document.getElementById('col-ja');
       enC.innerHTML = ""; jaC.innerHTML = "";
       
@@ -620,7 +798,7 @@
                   document.getElementById('result-accuracy').textContent = `${accuracy}%`;
                   document.getElementById('result-time').textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
-                  lessonContinueCallback = () => { openSteps(curLevel); };
+                  lessonContinueCallback = () => { openSteps(); };
 
                   const clearOverlay = document.getElementById('lesson-clear-overlay');
                   clearOverlay.style.display = 'flex'; setTimeout(() => clearOverlay.classList.add('show'), 10);
@@ -676,7 +854,7 @@
 
     window.onload = () => {
       loadData(); 
-      openSteps(curLevel);
+      openSteps(); 
     };
   </script>
 </body>
